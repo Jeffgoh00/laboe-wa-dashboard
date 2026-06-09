@@ -15,7 +15,10 @@ This folder is ready for GitHub Pages hosting.
 
 ## Daily collection flow
 
-The GitHub Pages app cannot run Google Maps collection by itself because it is a static browser app. Use Codex automation, a local collector, or GitHub Actions to generate a daily JSON file, then import it in the Collection tab. The importer splits up to 500 leads into WA01-WA10 automatically.
+The GitHub Pages app cannot run Google Maps collection by itself because it is a static browser app. The Collection tab now supports two paths:
+
+- Request Codex Collection: writes a request into Supabase for the selected Run Date. A background Codex monitor, local collector, or GitHub Action can pick this up and write results back.
+- Upload JSON Result: manual fallback for importing the generated daily JSON. The importer splits up to 500 leads into WA01-WA10 automatically.
 
 ## Supabase project
 

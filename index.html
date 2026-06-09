@@ -32,7 +32,8 @@
     .login-shell { max-width:420px; margin:12vh auto; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:24px; }
     .login-shell form { display:grid; gap:10px; margin-top:18px; }
     .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .date-control { width:150px; }
+    .date-strip { display:flex; justify-content:space-between; gap:14px; align-items:center; margin-bottom:16px; }
+    .date-control { width:170px; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--line); padding:6px 10px; background:#fff; color:#475569; font-size:13px; }
     .metric-grid { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
     .metric, .panel, .lead-card, .list-card { background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 1px 3px rgba(15,23,42,.05); }
@@ -62,7 +63,10 @@
     .lead-title h3 { font-size:17px; }
     .actions { display:flex; flex-wrap:wrap; gap:8px; }
     .action-stack { display:grid; gap:8px; margin-top:12px; }
-    .upload-box { display:grid; gap:10px; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; border:1px dashed #b8c5d4; background:#f8fbff; border-radius:8px; padding:12px; margin:12px 0; }
+    .tool-block { border-top:1px solid var(--line); padding-top:14px; margin-top:14px; }
+    .tool-block:first-of-type { border-top:0; padding-top:0; margin-top:0; }
+    .tool-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px; }
+    .upload-box { display:grid; gap:10px; grid-template-columns:minmax(0,1fr) auto; align-items:center; border:1px dashed #b8c5d4; background:#f8fbff; border-radius:8px; padding:12px; margin-top:10px; }
     .upload-box input { background:#fff; }
     .collection-panel[data-state="warning"] { background:var(--amber-soft); border-color:#fed7aa; }
     .collection-panel[data-state="ready"] { background:var(--green-soft); border-color:#9ee6bd; }
@@ -114,12 +118,19 @@
           <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip updates everyone after refresh or realtime sync.</p>
         </div>
         <div class="top-actions">
-          <input id="date-picker" class="date-control" type="date">
           <span id="user-pill" class="pill"></span>
           <button id="refresh">Refresh</button>
           <button id="logout">Logout</button>
         </div>
       </header>
+
+      <section class="panel date-strip">
+        <div>
+          <h2>Run Date</h2>
+          <p>Select the collection date for Daily Lists, Collection Monitor, and late-reply search.</p>
+        </div>
+        <input id="date-picker" class="date-control" type="date">
+      </section>
 
       <section id="home-view" class="view shell">
         <div class="main-column">
@@ -211,18 +222,28 @@
         <div class="panel-head">
           <div>
             <h2>Daily Collection</h2>
-            <p>GitHub Pages stores and displays leads. Actual Google Maps collection should run from Codex automation, a local script, or GitHub Actions, then import the JSON result here.</p>
+            <p>Request collection here, then let a Codex automation, local collector, or GitHub Action generate and return the daily JSON result.</p>
           </div>
         </div>
-        <div class="upload-box">
-          <input id="daily-import" type="file" accept="application/json,.json">
-          <button id="start-collection" class="primary" type="button">Start Daily Collection</button>
-          <button id="check-tables" type="button">Check Connection</button>
+        <div class="tool-block">
+          <h3>Request Codex Collection</h3>
+          <p>Creates a Supabase request for the selected Run Date. A background Codex monitor can pick this up, collect the lead list, and write results back.</p>
+          <div class="tool-row">
+            <button id="start-collection" class="primary" type="button">Start Daily Collection</button>
+            <button id="check-tables" type="button">Check Connection</button>
+          </div>
         </div>
-        <div class="notice">
-          Start Daily Collection records the request in Supabase. A local Codex collector, scheduled automation, or GitHub Action still needs to generate the Google Maps JSON, then this page imports it.
+        <div class="tool-block">
+          <h3>Upload JSON Result</h3>
+          <p>Use this as the fallback or manual handoff. Upload the daily collector JSON and the dashboard will split up to 500 leads into WA01-WA10.</p>
+          <div class="upload-box">
+            <input id="daily-import" type="file" accept="application/json,.json">
+            <span class="pill">Auto split WA01-WA10</span>
+          </div>
         </div>
-        <div class="actions">
+        <div class="tool-block">
+          <h3>Test Data</h3>
+          <p>Use this only for testing the dashboard and Supabase connection.</p>
           <button id="seed-today" class="primary">Seed WA01-2026-06-08 Test List</button>
         </div>
         <p id="collection-note" class="subcopy"></p>
@@ -359,7 +380,7 @@
       if (error) return noteSeedError(error);
       await loadAll();
       document.querySelector('[data-view="collection"]').click();
-      $("collection-note").textContent = "Request saved for " + targetDate + ". Next: run Codex/GitHub Action collector, then import the generated JSON here.";
+      $("collection-note").textContent = "Request saved for " + targetDate + ". Background Codex/automation can now collect and write results back. If the backend is not connected yet, upload the generated JSON in Upload JSON Result.";
     }
 
     async function importDailyJson(event) {
