@@ -32,7 +32,9 @@
     .login-shell { max-width:420px; margin:12vh auto; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:24px; }
     .login-shell form { display:grid; gap:10px; margin-top:18px; }
     .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .date-strip { display:flex; justify-content:space-between; gap:14px; align-items:center; margin-bottom:16px; }
+    .date-strip { display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-bottom:16px; padding:10px 12px; }
+    .date-range { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .date-range label { display:grid; gap:4px; color:#64748b; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
     .date-control { width:170px; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--line); padding:6px 10px; background:#fff; color:#475569; font-size:13px; }
     .metric-grid { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
@@ -126,11 +128,10 @@
       </header>
 
       <section class="panel date-strip">
-        <div>
-          <h2>Run Date</h2>
-          <p>Select the collection date for Daily Lists, Collection Monitor, and late-reply search.</p>
+        <div class="date-range">
+          <label>From <input id="date-start" class="date-control" type="date"></label>
+          <label>To <input id="date-end" class="date-control" type="date"></label>
         </div>
-        <input id="date-picker" class="date-control" type="date">
       </section>
 
       <section id="home-view" class="view shell">
@@ -234,6 +235,7 @@
     const seedData = JSON.parse(document.getElementById("seed-data").textContent);
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     let currentDate = localStorage.getItem("laboe-current-run-date") || seedData.collection.run_date;
+    let startDate = localStorage.getItem("laboe-start-run-date") || currentDate;
     let session = null;
     let leads = [];
     let batches = [];
@@ -267,12 +269,21 @@
       $("login").classList.add("hidden");
       $("app").classList.remove("hidden");
       $("user-pill").textContent = session.user.email || session.user.id;
-      $("date-picker").value = currentDate;
+      normalizeDateRange();
+      $("date-start").value = startDate;
+      $("date-end").value = currentDate;
     }
 
-    $("date-picker").addEventListener("change", async (event) => {
+    $("date-start").addEventListener("change", async (event) => {
+      startDate = event.target.value || startDate;
+      normalizeDateRange();
+      storeDateRange();
+      await loadAll();
+    });
+    $("date-end").addEventListener("change", async (event) => {
       currentDate = event.target.value || currentDate;
-      localStorage.setItem("laboe-current-run-date", currentDate);
+      normalizeDateRange();
+      storeDateRange();
       await loadAll();
     });
     $("login-form").addEventListener("submit", async (event) => {
@@ -318,7 +329,7 @@
     }
 
     async function requestCollectionRun() {
-      const targetDate = $("date-picker").value || currentDate || new Date().toISOString().slice(0, 10);
+      const targetDate = $("date-end").value || currentDate || new Date().toISOString().slice(0, 10);
       setCurrentDate(targetDate);
       const existingReady = collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.ready_leads || 0) : 0;
       const existingAssigned = leads.filter((lead) => lead.run_date === targetDate).length;
@@ -344,15 +355,29 @@
 
     function setCurrentDate(nextDate) {
       currentDate = nextDate;
+      if (startDate > currentDate) startDate = currentDate;
+      storeDateRange();
+      $("date-start").value = startDate;
+      $("date-end").value = currentDate;
+    }
+
+    function normalizeDateRange() {
+      if (!startDate) startDate = currentDate;
+      if (!currentDate) currentDate = startDate;
+      if (startDate > currentDate) startDate = currentDate;
+    }
+
+    function storeDateRange() {
+      localStorage.setItem("laboe-start-run-date", startDate);
       localStorage.setItem("laboe-current-run-date", currentDate);
-      $("date-picker").value = currentDate;
     }
 
     async function loadAll() {
+      normalizeDateRange();
       const [runRes, batchRes, leadRes] = await Promise.all([
         client.from("laboe_collection_runs").select("*").eq("run_date", currentDate).maybeSingle(),
-        client.from("laboe_send_batches").select("*").eq("run_date", currentDate).order("sender_profile"),
-        client.from("laboe_leads").select("*").eq("run_date", currentDate).order("sender_profile").order("sender_sequence"),
+        client.from("laboe_send_batches").select("*").gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile"),
+        client.from("laboe_leads").select("*").gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
       ]);
       if (runRes.error) return showLoadError(runRes.error);
       if (batchRes.error) return showLoadError(batchRes.error);
@@ -435,8 +460,8 @@
       $("op-missing").textContent = missing;
       $("op-lanes").textContent = (run.active_source_lanes || 0) + "/" + (run.source_lanes_attempted || 0);
       $("op-suppressed").textContent = run.suppressed_candidates || 0;
-      $("collection-mode").textContent = run.mode || "No collection request yet";
-      $("collection-notes").textContent = run.notes || "Use Start Daily Collection to record today's request.";
+      $("collection-mode").textContent = displayCollectionMode(run);
+      $("collection-notes").textContent = displayCollectionNotes(run);
       const progress = collectionProgress(run, missing);
       $("collection-panel").dataset.state = progress.state;
       $("collection-state").textContent = progress.stateLabel;
@@ -453,6 +478,17 @@
       const ready = Number(run.ready_leads || 0);
       const readyPercent = Math.min(100, Math.round((ready / target) * 100));
       if (mode.includes("failed")) {
+        if (ready > 0 || leads.length > 0) {
+          return {
+            percent: Math.max(readyPercent, 25),
+            state: "warning",
+            stateLabel: "Retry Failed",
+            label: "Lists still available",
+            detail: ready + "/" + target + " leads",
+            notice: "A retry failed, but existing lists for this date are still available. Upload the updated worker package and rerun to clear the retry error.",
+            working: false,
+          };
+        }
         return {
           percent: 100,
           state: "error",
@@ -518,6 +554,25 @@
       };
     }
 
+    function displayCollectionMode(run) {
+      const mode = String(run.mode || "");
+      const lower = mode.toLowerCase();
+      if (lower.includes("failed")) return "Last collection retry failed";
+      if (lower.includes("completed")) return "Collection completed";
+      if (lower.includes("short")) return "Collection partially ready";
+      if (lower.includes("processing")) return "Collection running";
+      if (lower.includes("requested")) return "Collection queued";
+      return mode || "No collection request yet";
+    }
+
+    function displayCollectionNotes(run) {
+      const mode = String(run.mode || "").toLowerCase();
+      if (mode.includes("failed")) {
+        return "A retry failed in GitHub Actions. The updated worker package fixes same-date duplicate imports; upload it, then run the workflow again for this date.";
+      }
+      return run.notes || "Use Start Daily Collection to record today's request.";
+    }
+
     function renderHomeLists() {
       $("home-lists").innerHTML = batches.length ? batches.map((batch) => {
         const stats = statsForBatch(batch.id);
@@ -530,7 +585,7 @@
           '<div class="meta-row"><span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span></div>' +
           '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '">Open List</button>' +
         '</article>';
-      }).join("") : '<p class="empty">No lists for ' + safe(currentDate) + '. Go to Collection and import a daily JSON file, or switch the Run Date.</p>';
+      }).join("") : '<p class="empty">No lists in this date range. Adjust From / To, or click Start Daily Collection for the To date.</p>';
     }
 
     function statsForBatch(batchId) {

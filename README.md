@@ -11,7 +11,7 @@ This folder is ready for GitHub Pages hosting.
 5. Click Run.
 6. Open index.html in a browser or push this folder to GitHub Pages.
 7. Login with the Supabase Auth user you created.
-8. Open the dashboard, select a Run Date, and click "Start Daily Collection".
+8. Open the dashboard, select a From / To date range, and click "Start Daily Collection" for the To date.
 
 ## Daily collection flow
 
