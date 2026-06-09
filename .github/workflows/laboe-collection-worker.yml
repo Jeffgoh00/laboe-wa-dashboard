@@ -1,77 +1,44 @@
-# GitHub Actions Worker Setup
+name: Laboe Collection Worker
 
-This repo contains the browser dashboard and the background collection worker.
+on:
+  workflow_dispatch:
+    inputs:
+      collection_date:
+        description: "Run date to collect, YYYY-MM-DD. Leave blank to use the oldest dashboard request."
+        required: false
+      target_leads:
+        description: "Target leads to collect"
+        required: false
+        default: "100"
+  schedule:
+    - cron: "*/15 * * * *"
 
-## 1. Upload Files
+permissions:
+  contents: read
 
-Upload the full contents of this folder to the root of your GitHub repo:
+concurrency:
+  group: laboe-collection-worker
+  cancel-in-progress: false
 
-- `index.html`
-- `README.md`
-- `setup.sql`
-- `data/contact_registry.json`
-- `scripts/laboe_collection_worker.mjs`
-- `scripts/laboe_collect_google_maps_leads.mjs`
-- `.github/workflows/laboe-collection-worker.yml`
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-## 2. Add GitHub Secrets
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-In GitHub:
-
-1. Open the repo.
-2. Go to `Settings`.
-3. Go to `Secrets and variables`.
-4. Go to `Actions`.
-5. Click `New repository secret`.
-
-Create these secrets:
-
-```text
-SUPABASE_URL
-```
-
-Value:
-
-```text
-https://jzjuhrnedjbfpuvrqiwb.supabase.co
-```
-
-Create another secret:
-
-```text
-SUPABASE_SERVICE_ROLE_KEY
-```
-
-Value: copy this from Supabase `Project Settings > API Keys > Secret keys`.
-
-Important: never put the service role key in `index.html`, GitHub Pages, or chat screenshots.
-
-## 3. Run Worker Manually
-
-In GitHub:
-
-1. Go to `Actions`.
-2. Click `Laboe Collection Worker`.
-3. Click `Run workflow`.
-4. Optional: enter a `collection_date`, for example `2026-06-09`.
-5. Click `Run workflow`.
-
-## 4. Dashboard Flow
-
-1. Open the dashboard.
-2. Select `Run Date`.
-3. Click `Start Daily Collection`.
-4. GitHub Actions checks Supabase every 15 minutes.
-5. Worker marks the request as processing.
-6. Worker collects leads and writes WA01-WA10 lists into Supabase.
-7. Refresh the dashboard to see the lists.
-
-## Notes
-
-The workflow also runs every 15 minutes:
-
-```yaml
-cron: "*/15 * * * *"
-```
-
-GitHub Actions cron is not exact to the minute, so it can run a little late.
+      - name: Run collection worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COLLECTION_DATE: ${{ github.event.inputs.collection_date }}
+          TARGET_LEADS: ${{ github.event.inputs.target_leads }}
+        run: |
+          export TARGET_LEADS="${TARGET_LEADS:-100}"
+          node scripts/laboe_collection_worker.mjs
