@@ -15,7 +15,7 @@ This folder is ready for GitHub Pages hosting.
 
 ## Daily collection flow
 
-The GitHub Pages app writes a collection request into Supabase. GitHub Actions checks for requested runs on schedule, collects the leads, and writes WA01-WA10 lists back into Supabase. The dashboard listens for updates and also refreshes every 30 seconds.
+The GitHub Pages app writes a collection request into Supabase. GitHub Actions collects the leads and writes WA01-WA10 lists back into Supabase. The dashboard listens for realtime updates and only uses temporary polling while a collection is queued or processing.
 
 Manual Run workflow in GitHub Actions is only for testing or urgent collection. Normal users should only click Start Daily Collection in the dashboard.
 

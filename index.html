@@ -55,6 +55,9 @@
     .status-chip[data-status="bad"], .status-chip[data-status="skip"] { background:var(--red-soft); color:var(--red); }
     .progress { height:8px; border-radius:999px; overflow:hidden; background:#e5eaf1; }
     .progress i { display:block; height:100%; background:var(--brand); }
+    .collection-progress { margin-top:12px; padding:12px; border-radius:8px; background:rgba(255,255,255,.72); border:1px solid rgba(100,116,139,.25); }
+    .collection-progress .progress { height:10px; }
+    .collection-progress .meta-row { justify-content:space-between; font-size:12px; font-weight:700; }
     .meta-row { display:flex; gap:10px; flex-wrap:wrap; color:#64748b; font-size:13px; }
     .lead-list { display:grid; gap:12px; }
     .lead-card { padding:14px; display:grid; gap:12px; }
@@ -65,6 +68,10 @@
     .action-stack { display:grid; gap:8px; margin-top:12px; }
     .collection-panel[data-state="warning"] { background:var(--amber-soft); border-color:#fed7aa; }
     .collection-panel[data-state="ready"] { background:var(--green-soft); border-color:#9ee6bd; }
+    .collection-panel[data-state="working"] { background:#f0f7ff; border-color:#bfdbfe; }
+    .collection-panel[data-state="error"] { background:var(--red-soft); border-color:#fecaca; }
+    .collection-panel[data-state="working"] .collection-progress .progress i { background:var(--brand-2); }
+    .collection-panel[data-state="error"] .collection-progress .progress i { background:var(--red); }
     .ops-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px; }
     .ops-grid div { border:1px solid rgba(100,116,139,.25); border-radius:8px; padding:10px; background:rgba(255,255,255,.7); }
     .ops-grid span { display:block; color:#64748b; font-size:12px; }
@@ -166,6 +173,13 @@
               <strong id="collection-mode">No request yet</strong>
               <p id="collection-notes">Use Start Daily Collection to record today's request.</p>
             </div>
+            <div class="collection-progress">
+              <div class="progress"><i id="collection-progress-bar" style="width:0%"></i></div>
+              <div class="meta-row">
+                <span id="collection-progress-label">Idle</span>
+                <span id="collection-progress-detail">Waiting for request</span>
+              </div>
+            </div>
             <div id="collection-notice" class="notice"></div>
             <div class="action-stack">
               <button id="home-start-collection" class="primary" type="button">Start Daily Collection</button>
@@ -173,7 +187,7 @@
           </section>
           <section class="panel">
             <h2>Workflow</h2>
-            <p>Click Start Daily Collection once. GitHub Actions checks requests automatically, writes the lists back to Supabase, and this dashboard refreshes the result. Operators then open WhatsApp manually and mark each lead.</p>
+            <p>Click Start Daily Collection once. The background worker writes WA01-WA10 back to Supabase, then the dashboard shows the lists here. Operators open WhatsApp manually and mark each lead.</p>
           </section>
         </aside>
       </section>
@@ -241,7 +255,7 @@
       showApp();
       await loadAll();
       subscribeRealtime();
-      startAutoRefresh();
+      syncAutoRefresh();
     }
 
     function showLogin() {
@@ -275,7 +289,7 @@
       showApp();
       await loadAll();
       subscribeRealtime();
-      startAutoRefresh();
+      syncAutoRefresh();
     });
 
     $("logout").addEventListener("click", async () => {
@@ -300,6 +314,7 @@
 
     function noteRequestError(error) {
       $("collection-notice").textContent = "Request failed: " + error.message + ". Check setup.sql, RLS policies, and login session.";
+      $("home-start-collection").disabled = false;
     }
 
     async function requestCollectionRun() {
@@ -316,13 +331,15 @@
         active_source_lanes: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.active_source_lanes || 0) : 0,
         suppressed_candidates: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.suppressed_candidates || 0) : 0,
         mode: "Collection requested from dashboard",
-        notes: "Waiting for collector JSON import. Requested at " + new Date().toLocaleString() + ".",
+        notes: "Dashboard request saved at " + new Date().toLocaleString() + ". Waiting for the background worker.",
       };
+      $("home-start-collection").disabled = true;
       $("collection-notice").textContent = "Saving request for " + targetDate + "...";
       const { error } = await client.from("laboe_collection_runs").upsert(request, { onConflict: "run_date" });
       if (error) return noteRequestError(error);
       await loadAll();
-      $("collection-notice").textContent = "Queued for " + targetDate + ". GitHub Actions checks automatically about every 5 minutes. This page will refresh while you wait.";
+      startAutoRefresh();
+      $("collection-notice").textContent = "Queued for " + targetDate + ". The progress monitor will update when the worker starts and when WA01-WA10 are ready.";
     }
 
     function setCurrentDate(nextDate) {
@@ -344,6 +361,7 @@
       batches = batchRes.data || [];
       leads = leadRes.data || [];
       render();
+      syncAutoRefresh();
     }
 
     function showLoadError(error) {
@@ -360,8 +378,24 @@
     }
 
     function startAutoRefresh() {
-      if (refreshTimer) clearInterval(refreshTimer);
+      if (refreshTimer) return;
       refreshTimer = setInterval(loadAll, 30000);
+    }
+
+    function stopAutoRefresh() {
+      if (!refreshTimer) return;
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+
+    function isCollectionWorking() {
+      const mode = String(collectionRun?.mode || "").toLowerCase();
+      return mode.includes("requested") || mode.includes("processing");
+    }
+
+    function syncAutoRefresh() {
+      if (isCollectionWorking()) startAutoRefresh();
+      else stopAutoRefresh();
     }
 
     function render() {
@@ -403,11 +437,85 @@
       $("op-suppressed").textContent = run.suppressed_candidates || 0;
       $("collection-mode").textContent = run.mode || "No collection request yet";
       $("collection-notes").textContent = run.notes || "Use Start Daily Collection to record today's request.";
-      $("collection-panel").dataset.state = missing > 0 ? "warning" : "ready";
-      $("collection-state").textContent = missing > 0 ? "Needs More Sources" : "Ready";
-      $("collection-notice").textContent = missing > 0
-        ? "Still short by " + missing + " leads. Add more source lanes before aiming for 500 daily sends."
-        : "Daily collection target is ready. Split across WA01-WA10.";
+      const progress = collectionProgress(run, missing);
+      $("collection-panel").dataset.state = progress.state;
+      $("collection-state").textContent = progress.stateLabel;
+      $("collection-progress-bar").style.width = progress.percent + "%";
+      $("collection-progress-label").textContent = progress.label;
+      $("collection-progress-detail").textContent = progress.detail;
+      $("home-start-collection").disabled = progress.working;
+      $("collection-notice").textContent = progress.notice;
+    }
+
+    function collectionProgress(run, missing) {
+      const mode = String(run.mode || "").toLowerCase();
+      const target = Number(run.target_leads || 500);
+      const ready = Number(run.ready_leads || 0);
+      const readyPercent = Math.min(100, Math.round((ready / target) * 100));
+      if (mode.includes("failed")) {
+        return {
+          percent: 100,
+          state: "error",
+          stateLabel: "Failed",
+          label: "Collection failed",
+          detail: "Check GitHub Actions logs",
+          notice: "The worker failed for this date. Open GitHub Actions logs, fix the error, then run the workflow again.",
+          working: false,
+        };
+      }
+      if (mode.includes("requested")) {
+        return {
+          percent: Math.max(12, readyPercent),
+          state: "working",
+          stateLabel: "Queued",
+          label: "Request saved",
+          detail: "Waiting for worker",
+          notice: "Queued. The dashboard will update when the worker writes results to Supabase.",
+          working: true,
+        };
+      }
+      if (mode.includes("processing")) {
+        return {
+          percent: Math.max(45, readyPercent),
+          state: "working",
+          stateLabel: "Collecting",
+          label: "Worker running",
+          detail: "Collecting leads",
+          notice: "Worker is collecting leads now. WA01-WA10 will appear after it writes to Supabase.",
+          working: true,
+        };
+      }
+      if (missing === 0 || mode.includes("completed")) {
+        return {
+          percent: 100,
+          state: "ready",
+          stateLabel: "Ready",
+          label: "WA01-WA10 ready",
+          detail: ready + "/" + target + " leads",
+          notice: "Daily collection target is ready. Split across WA01-WA10.",
+          working: false,
+        };
+      }
+      if (ready > 0 || mode.includes("short")) {
+        return {
+          percent: Math.max(25, readyPercent),
+          state: "warning",
+          stateLabel: "Short",
+          label: "Partially ready",
+          detail: ready + "/" + target + " leads",
+          notice: "Still short by " + missing + " leads. Add more source lanes before aiming for 500 daily sends.",
+          working: false,
+        };
+      }
+      return {
+        percent: 0,
+        state: "warning",
+        stateLabel: "No Request",
+        label: "Idle",
+        detail: "Waiting for request",
+        notice: "Use Start Daily Collection when you are ready to collect today's WA01-WA10 lists.",
+        working: false,
+      };
     }
 
     function renderHomeLists() {
