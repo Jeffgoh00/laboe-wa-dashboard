@@ -11,14 +11,13 @@ This folder is ready for GitHub Pages hosting.
 5. Click Run.
 6. Open index.html in a browser or push this folder to GitHub Pages.
 7. Login with the Supabase Auth user you created.
-8. Go to Collection and click "Seed WA01-2026-06-08 Test List" or import a daily Google Maps JSON file.
+8. Open the dashboard, select a Run Date, and click "Start Daily Collection".
 
 ## Daily collection flow
 
-The GitHub Pages app cannot run Google Maps collection by itself because it is a static browser app. The Collection tab now supports two paths:
+The GitHub Pages app writes a collection request into Supabase. GitHub Actions checks for requested runs on schedule, collects the leads, and writes WA01-WA10 lists back into Supabase. The dashboard listens for updates and also refreshes every 30 seconds.
 
-- Request Codex Collection: writes a request into Supabase for the selected Run Date. A background Codex monitor, local collector, or GitHub Action can pick this up and write results back.
-- Upload JSON Result: manual fallback for importing the generated daily JSON. The importer splits up to 500 leads into WA01-WA10 automatically.
+Manual Run workflow in GitHub Actions is only for testing or urgent collection. Normal users should only click Start Daily Collection in the dashboard.
 
 ## Supabase project
 
