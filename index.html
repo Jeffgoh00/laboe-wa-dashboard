@@ -61,6 +61,7 @@
     .lead-title { display:grid; gap:5px; min-width:0; }
     .lead-title h3 { font-size:17px; }
     .actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .action-stack { display:grid; gap:8px; margin-top:12px; }
     .upload-box { display:grid; gap:10px; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; border:1px dashed #b8c5d4; background:#f8fbff; border-radius:8px; padding:12px; margin:12px 0; }
     .upload-box input { background:#fff; }
     .collection-panel[data-state="warning"] { background:var(--amber-soft); border-color:#fed7aa; }
@@ -156,7 +157,15 @@
               <div><span>Active lanes</span><strong id="op-lanes">0/0</strong></div>
               <div><span>Suppressed</span><strong id="op-suppressed">0</strong></div>
             </div>
+            <div class="notice">
+              <strong id="collection-mode">No request yet</strong>
+              <p id="collection-notes">Use Start Daily Collection to record today's request.</p>
+            </div>
             <div id="collection-notice" class="notice"></div>
+            <div class="action-stack">
+              <button id="home-start-collection" class="primary" type="button">Start Daily Collection</button>
+              <button id="home-open-collection" type="button">Open Collection Tools</button>
+            </div>
           </section>
           <section class="panel">
             <h2>Workflow</h2>
@@ -207,8 +216,11 @@
         </div>
         <div class="upload-box">
           <input id="daily-import" type="file" accept="application/json,.json">
-          <button id="start-collection" type="button">Start Search</button>
+          <button id="start-collection" class="primary" type="button">Start Daily Collection</button>
           <button id="check-tables" type="button">Check Connection</button>
+        </div>
+        <div class="notice">
+          Start Daily Collection records the request in Supabase. A local Codex collector, scheduled automation, or GitHub Action still needs to generate the Google Maps JSON, then this page imports it.
         </div>
         <div class="actions">
           <button id="seed-today" class="primary">Seed WA01-2026-06-08 Test List</button>
@@ -291,6 +303,8 @@
     $("status-filter").addEventListener("change", renderLeads);
     $("reply-search").addEventListener("input", renderReplySearch);
     $("daily-import").addEventListener("change", importDailyJson);
+    $("home-start-collection").addEventListener("click", requestCollectionRun);
+    $("home-open-collection").addEventListener("click", () => document.querySelector('[data-view="collection"]').click());
 
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -305,9 +319,7 @@
       $("collection-note").textContent = error ? "Connection failed: " + error.message : "Connection OK. Tables and policies are reachable.";
     });
 
-    $("start-collection").addEventListener("click", () => {
-      $("collection-note").textContent = "This browser dashboard cannot run Google Maps collection directly. Run the Codex/GitHub Action collector first, then import the generated JSON here.";
-    });
+    $("start-collection").addEventListener("click", requestCollectionRun);
 
     $("seed-today").addEventListener("click", async () => {
       $("collection-note").textContent = "Uploading seed data...";
@@ -324,6 +336,30 @@
 
     function noteSeedError(error) {
       $("collection-note").textContent = "Upload failed: " + error.message + ". Usually this means setup.sql has not been run yet, or RLS policy is missing.";
+    }
+
+    async function requestCollectionRun() {
+      const targetDate = $("date-picker").value || currentDate || new Date().toISOString().slice(0, 10);
+      setCurrentDate(targetDate);
+      const existingReady = collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.ready_leads || 0) : 0;
+      const existingAssigned = leads.filter((lead) => lead.run_date === targetDate).length;
+      const request = {
+        run_date: targetDate,
+        target_leads: 500,
+        ready_leads: existingReady,
+        assigned_leads: existingAssigned,
+        source_lanes_attempted: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.source_lanes_attempted || 0) : 0,
+        active_source_lanes: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.active_source_lanes || 0) : 0,
+        suppressed_candidates: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.suppressed_candidates || 0) : 0,
+        mode: "Collection requested from dashboard",
+        notes: "Waiting for collector JSON import. Requested at " + new Date().toLocaleString() + ".",
+      };
+      $("collection-note").textContent = "Collection requested for " + targetDate + ". Waiting for collector JSON import.";
+      const { error } = await client.from("laboe_collection_runs").upsert(request, { onConflict: "run_date" });
+      if (error) return noteSeedError(error);
+      await loadAll();
+      document.querySelector('[data-view="collection"]').click();
+      $("collection-note").textContent = "Request saved for " + targetDate + ". Next: run Codex/GitHub Action collector, then import the generated JSON here.";
     }
 
     async function importDailyJson(event) {
@@ -493,6 +529,8 @@
       $("op-missing").textContent = missing;
       $("op-lanes").textContent = (run.active_source_lanes || 0) + "/" + (run.source_lanes_attempted || 0);
       $("op-suppressed").textContent = run.suppressed_candidates || 0;
+      $("collection-mode").textContent = run.mode || "No collection request yet";
+      $("collection-notes").textContent = run.notes || "Use Start Daily Collection to record today's request.";
       $("collection-panel").dataset.state = missing > 0 ? "warning" : "ready";
       $("collection-state").textContent = missing > 0 ? "Needs More Sources" : "Ready";
       $("collection-notice").textContent = missing > 0
