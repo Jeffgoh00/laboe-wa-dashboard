@@ -32,9 +32,9 @@
     .login-shell { max-width:420px; margin:12vh auto; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:24px; }
     .login-shell form { display:grid; gap:10px; margin-top:18px; }
     .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .date-strip { display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-bottom:16px; padding:10px 12px; }
-    .date-range { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .date-range label { display:grid; gap:4px; color:#64748b; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
+    .date-strip { display:flex; justify-content:flex-start; gap:16px; align-items:center; margin-bottom:16px; }
+    .date-range { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    .date-range label { display:flex; align-items:center; gap:8px; color:#64748b; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
     .date-control { width:170px; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--line); padding:6px 10px; background:#fff; color:#475569; font-size:13px; }
     .metric-grid { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
@@ -110,7 +110,6 @@
     <aside class="sidebar">
       <div class="brand">Laboe<span>WA</span></div>
       <button class="nav-item active" data-view="home">Home</button>
-      <button class="nav-item" data-view="lists">Daily Lists</button>
       <button class="nav-item" data-view="search">Search</button>
     </aside>
     <main class="content">
@@ -118,16 +117,15 @@
         <div>
           <p class="eyebrow">Supabase Connected</p>
           <h1>WhatsApp Lead Home</h1>
-          <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip updates everyone after refresh or realtime sync.</p>
+          <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip updates everyone via realtime sync.</p>
         </div>
         <div class="top-actions">
           <span id="user-pill" class="pill"></span>
-          <button id="refresh">Refresh</button>
           <button id="logout">Logout</button>
         </div>
       </header>
 
-      <section class="panel date-strip">
+      <section class="date-strip">
         <div class="date-range">
           <label>From <input id="date-start" class="date-control" type="date"></label>
           <label>To <input id="date-end" class="date-control" type="date"></label>
@@ -170,10 +168,6 @@
               <div><span>Active lanes</span><strong id="op-lanes">0/0</strong></div>
               <div><span>Suppressed</span><strong id="op-suppressed">0</strong></div>
             </div>
-            <div class="notice">
-              <strong id="collection-mode">No request yet</strong>
-              <p id="collection-notes">Use Start Daily Collection to record today's request.</p>
-            </div>
             <div class="collection-progress">
               <div class="progress"><i id="collection-progress-bar" style="width:0%"></i></div>
               <div class="meta-row">
@@ -181,14 +175,9 @@
                 <span id="collection-progress-detail">Waiting for request</span>
               </div>
             </div>
-            <div id="collection-notice" class="notice"></div>
             <div class="action-stack">
               <button id="home-start-collection" class="primary" type="button">Start Daily Collection</button>
             </div>
-          </section>
-          <section class="panel">
-            <h2>Workflow</h2>
-            <p>Click Start Daily Collection once. The background worker writes WA01-WA10 back to Supabase, then the dashboard shows the lists here. Operators open WhatsApp manually and mark each lead.</p>
           </section>
         </aside>
       </section>
@@ -199,6 +188,7 @@
             <h2>Lead List</h2>
             <p>Filter by date, WA profile, status, business, phone, or industry.</p>
           </div>
+          <button id="back-home" type="button">&larr; Back to Home</button>
         </div>
         <div class="filters">
           <input id="lead-filter" placeholder="Search business, phone, industry, WA profile">
@@ -308,23 +298,25 @@
       location.reload();
     });
 
-    $("refresh").addEventListener("click", loadAll);
     $("lead-filter").addEventListener("input", renderLeads);
     $("profile-filter").addEventListener("change", renderLeads);
     $("status-filter").addEventListener("change", renderLeads);
     $("reply-search").addEventListener("input", renderReplySearch);
     $("home-start-collection").addEventListener("click", requestCollectionRun);
+    $("back-home").addEventListener("click", () => showView("home"));
+
+    function showView(name) {
+      document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item.dataset.view === name));
+      document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
+      $(name + "-view").classList.remove("hidden");
+    }
 
     document.querySelectorAll("[data-view]").forEach((button) => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item === button));
-        document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
-        $(button.dataset.view + "-view").classList.remove("hidden");
-      });
+      button.addEventListener("click", () => showView(button.dataset.view));
     });
 
     function noteRequestError(error) {
-      $("collection-notice").textContent = "Request failed: " + error.message + ". Check setup.sql, RLS policies, and login session.";
+      alert("Request failed: " + error.message + ". Check setup.sql, RLS policies, and login session.");
       $("home-start-collection").disabled = false;
     }
 
@@ -345,12 +337,10 @@
         notes: "Dashboard request saved at " + new Date().toLocaleString() + ". Waiting for the background worker.",
       };
       $("home-start-collection").disabled = true;
-      $("collection-notice").textContent = "Saving request for " + targetDate + "...";
       const { error } = await client.from("laboe_collection_runs").upsert(request, { onConflict: "run_date" });
       if (error) return noteRequestError(error);
       await loadAll();
       startAutoRefresh();
-      $("collection-notice").textContent = "Queued for " + targetDate + ". The progress monitor will update when the worker starts and when WA01-WA10 are ready.";
     }
 
     function setCurrentDate(nextDate) {
@@ -460,8 +450,6 @@
       $("op-missing").textContent = missing;
       $("op-lanes").textContent = (run.active_source_lanes || 0) + "/" + (run.source_lanes_attempted || 0);
       $("op-suppressed").textContent = run.suppressed_candidates || 0;
-      $("collection-mode").textContent = displayCollectionMode(run);
-      $("collection-notes").textContent = displayCollectionNotes(run);
       const progress = collectionProgress(run, missing);
       $("collection-panel").dataset.state = progress.state;
       $("collection-state").textContent = progress.stateLabel;
@@ -469,7 +457,6 @@
       $("collection-progress-label").textContent = progress.label;
       $("collection-progress-detail").textContent = progress.detail;
       $("home-start-collection").disabled = progress.working;
-      $("collection-notice").textContent = progress.notice;
     }
 
     function collectionProgress(run, missing) {
@@ -477,28 +464,6 @@
       const target = Number(run.target_leads || 500);
       const ready = Number(run.ready_leads || 0);
       const readyPercent = Math.min(100, Math.round((ready / target) * 100));
-      if (mode.includes("failed")) {
-        if (ready > 0 || leads.length > 0) {
-          return {
-            percent: Math.max(readyPercent, 25),
-            state: "warning",
-            stateLabel: "Retry Failed",
-            label: "Lists still available",
-            detail: ready + "/" + target + " leads",
-            notice: "A retry failed, but existing lists for this date are still available. Upload the updated worker package and rerun to clear the retry error.",
-            working: false,
-          };
-        }
-        return {
-          percent: 100,
-          state: "error",
-          stateLabel: "Failed",
-          label: "Collection failed",
-          detail: "Check GitHub Actions logs",
-          notice: "The worker failed for this date. Open GitHub Actions logs, fix the error, then run the workflow again.",
-          working: false,
-        };
-      }
       if (mode.includes("requested")) {
         return {
           percent: Math.max(12, readyPercent),
@@ -554,33 +519,14 @@
       };
     }
 
-    function displayCollectionMode(run) {
-      const mode = String(run.mode || "");
-      const lower = mode.toLowerCase();
-      if (lower.includes("failed")) return "Last collection retry failed";
-      if (lower.includes("completed")) return "Collection completed";
-      if (lower.includes("short")) return "Collection partially ready";
-      if (lower.includes("processing")) return "Collection running";
-      if (lower.includes("requested")) return "Collection queued";
-      return mode || "No collection request yet";
-    }
-
-    function displayCollectionNotes(run) {
-      const mode = String(run.mode || "").toLowerCase();
-      if (mode.includes("failed")) {
-        return "A retry failed in GitHub Actions. The updated worker package fixes same-date duplicate imports; upload it, then run the workflow again for this date.";
-      }
-      return run.notes || "Use Start Daily Collection to record today's request.";
-    }
-
     function renderHomeLists() {
       $("home-lists").innerHTML = batches.length ? batches.map((batch) => {
         const stats = statsForBatch(batch.id);
         const progress = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;
         return '<article class="list-card" data-complete="' + stats.complete + '">' +
           '<span class="status-chip">' + (stats.complete ? "Completed" : "In Progress") + '</span>' +
-          '<h3>' + safe(batch.title) + '</h3>' +
-          '<div class="meta-row"><span>' + safe(batch.run_date) + '</span><span>' + safe(batch.sender_profile) + '</span><span>' + stats.total + ' leads</span></div>' +
+          '<h3>' + safe(batch.sender_profile + "-" + batch.run_date) + '</h3>' +
+          '<div class="meta-row"><span>' + stats.total + ' leads</span></div>' +
           '<div class="progress"><i style="width:' + progress + '%"></i></div>' +
           '<div class="meta-row"><span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span></div>' +
           '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '">Open List</button>' +
@@ -665,7 +611,7 @@
     document.addEventListener("click", async (event) => {
       const openButton = event.target.closest("[data-open-profile]");
       if (openButton) {
-        document.querySelector('[data-view="lists"]').click();
+        showView("lists");
         $("profile-filter").value = openButton.dataset.openProfile;
         renderLeads();
         return;
