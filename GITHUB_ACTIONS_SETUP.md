@@ -59,7 +59,7 @@ In GitHub:
 ## 4. Dashboard Flow
 
 1. Open the dashboard.
-2. Select `Run Date`.
+2. Select the `To` date you want to collect.
 3. Click `Start Daily Collection`.
 4. GitHub Actions picks up the Supabase request on its schedule.
 5. Worker marks the request as processing.
