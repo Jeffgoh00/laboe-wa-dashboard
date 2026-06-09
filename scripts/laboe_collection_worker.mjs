@@ -60,6 +60,30 @@ async function upsertRows(table, rows, conflictKey) {
   }
 }
 
+async function getExistingLeadStatus(runDate) {
+  const rows = await supabase("GET", "laboe_leads", {
+    query: `?select=phone,send_status,send_notes&run_date=eq.${encodeURIComponent(runDate)}`,
+  });
+  const statusByPhone = new Map();
+  for (const row of rows || []) {
+    if (!row.phone) continue;
+    statusByPhone.set(String(row.phone), {
+      send_status: row.send_status || "pending",
+      send_notes: row.send_notes || "",
+    });
+  }
+  return statusByPhone;
+}
+
+async function clearExistingRunRows(runDate) {
+  await supabase("DELETE", "laboe_leads", {
+    query: `?run_date=eq.${encodeURIComponent(runDate)}`,
+  });
+  await supabase("DELETE", "laboe_send_batches", {
+    query: `?run_date=eq.${encodeURIComponent(runDate)}`,
+  });
+}
+
 function prepareDailyImport(parsed) {
   const rawLeads = Array.isArray(parsed.newLeads) ? parsed.newLeads : Array.isArray(parsed.leads) ? parsed.leads : [];
   if (!rawLeads.length) throw new Error("Collector returned no leads.");
@@ -181,6 +205,14 @@ async function main() {
   try {
     const collectorJson = await runCollector(runDate);
     const prepared = prepareDailyImport(collectorJson);
+    const existingStatus = await getExistingLeadStatus(prepared.collection.run_date);
+    for (const lead of prepared.leads) {
+      const preserved = existingStatus.get(String(lead.phone));
+      if (!preserved) continue;
+      lead.send_status = preserved.send_status;
+      lead.send_notes = preserved.send_notes;
+    }
+    await clearExistingRunRows(prepared.collection.run_date);
     await upsertRun(prepared.collection);
     await upsertRows("laboe_send_batches", prepared.batches, "id");
     await upsertRows("laboe_leads", prepared.leads, "id");
