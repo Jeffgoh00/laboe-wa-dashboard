@@ -9,10 +9,10 @@ const leadSystemDir = process.cwd();
 const userOutputDir = path.join(leadSystemDir, "lead_outputs");
 const systemOutputDir = path.join(leadSystemDir, "lead_outputs");
 const registryPath = path.join(leadSystemDir, "data", "contact_registry.json");
-const date = process.argv[2] ?? new Date().toISOString().slice(0, 10);
+const date = process.argv[2] || new Date().toISOString().slice(0, 10);
 const targetCount = Number(process.argv[3] ?? "100");
 const rebuildFromJson = process.argv.includes("--from-json");
-const outputBaseName = `-google-maps-fresh-leads`;
+const outputBaseName = `${date}-google-maps-fresh-leads`;
 
 const excludePatterns = [
   /\bhardware\b/i,

@@ -144,8 +144,18 @@ async function runCollector(runDate) {
   );
   if (stderr) console.error(stderr);
   console.log(stdout);
-  const outputPath = `lead_outputs/${runDate}-google-maps-fresh-leads.json`;
-  return JSON.parse(await fs.readFile(outputPath, "utf8"));
+  const summary = parseLastJsonObject(stdout);
+  if (!summary.output_json) throw new Error("Collector did not return output_json.");
+  const parsed = JSON.parse(await fs.readFile(summary.output_json, "utf8"));
+  parsed.date = parsed.date || runDate;
+  return parsed;
+}
+
+function parseLastJsonObject(stdout) {
+  const text = stdout.trim();
+  const start = text.lastIndexOf("\n{");
+  const jsonText = start >= 0 ? text.slice(start + 1) : text.slice(text.indexOf("{"));
+  return JSON.parse(jsonText);
 }
 
 async function main() {
