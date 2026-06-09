@@ -32,6 +32,7 @@
     .login-shell { max-width:420px; margin:12vh auto; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:24px; }
     .login-shell form { display:grid; gap:10px; margin-top:18px; }
     .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .date-control { width:150px; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--line); padding:6px 10px; background:#fff; color:#475569; font-size:13px; }
     .metric-grid { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
     .metric, .panel, .lead-card, .list-card { background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 1px 3px rgba(15,23,42,.05); }
@@ -60,6 +61,8 @@
     .lead-title { display:grid; gap:5px; min-width:0; }
     .lead-title h3 { font-size:17px; }
     .actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .upload-box { display:grid; gap:10px; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; border:1px dashed #b8c5d4; background:#f8fbff; border-radius:8px; padding:12px; margin:12px 0; }
+    .upload-box input { background:#fff; }
     .collection-panel[data-state="warning"] { background:var(--amber-soft); border-color:#fed7aa; }
     .collection-panel[data-state="ready"] { background:var(--green-soft); border-color:#9ee6bd; }
     .ops-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px; }
@@ -98,9 +101,9 @@
     <aside class="sidebar">
       <div class="brand">Laboe<span>WA</span></div>
       <button class="nav-item active" data-view="home">Home</button>
+      <button class="nav-item" data-view="collection">Collection</button>
       <button class="nav-item" data-view="lists">Daily Lists</button>
       <button class="nav-item" data-view="search">Search</button>
-      <button class="nav-item" data-view="seed">Seed</button>
     </aside>
     <main class="content">
       <header class="page-header">
@@ -110,6 +113,7 @@
           <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip updates everyone after refresh or realtime sync.</p>
         </div>
         <div class="top-actions">
+          <input id="date-picker" class="date-control" type="date">
           <span id="user-pill" class="pill"></span>
           <button id="refresh">Refresh</button>
           <button id="logout">Logout</button>
@@ -156,7 +160,7 @@
           </section>
           <section class="panel">
             <h2>Workflow</h2>
-            <p>Open the right WA profile, click Open WhatsApp, send manually, then mark the result. Day 3 replies can be searched by number and marked replied from this same database.</p>
+            <p>Collection imports daily search output into Supabase. Operators open the right WA profile, click Open WhatsApp, send manually, then mark the result. Day 3 replies can be searched by number and marked replied from this same database.</p>
           </section>
         </aside>
       </section>
@@ -194,18 +198,22 @@
         <div id="reply-results" class="lead-list" style="margin-top:12px"></div>
       </section>
 
-      <section id="seed-view" class="view panel hidden">
+      <section id="collection-view" class="view panel hidden">
         <div class="panel-head">
           <div>
-            <h2>Seed Today</h2>
-            <p>After running setup.sql once, click this to upload today's WA01 50 lead test list to Supabase.</p>
+            <h2>Daily Collection</h2>
+            <p>GitHub Pages stores and displays leads. Actual Google Maps collection should run from Codex automation, a local script, or GitHub Actions, then import the JSON result here.</p>
           </div>
         </div>
-        <div class="actions">
-          <button id="seed-today" class="primary">Seed WA01-2026-06-08</button>
-          <button id="check-tables">Check Connection</button>
+        <div class="upload-box">
+          <input id="daily-import" type="file" accept="application/json,.json">
+          <button id="start-collection" type="button">Start Search</button>
+          <button id="check-tables" type="button">Check Connection</button>
         </div>
-        <p id="seed-note" class="subcopy"></p>
+        <div class="actions">
+          <button id="seed-today" class="primary">Seed WA01-2026-06-08 Test List</button>
+        </div>
+        <p id="collection-note" class="subcopy"></p>
       </section>
     </main>
   </div>
@@ -214,9 +222,9 @@
   <script>
     const SUPABASE_URL = "https://jzjuhrnedjbfpuvrqiwb.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_WLfAIGsnXIxBGr1aKokzSg_3-BQDu5g";
-    const CURRENT_DATE = "2026-06-08";
     const seedData = JSON.parse(document.getElementById("seed-data").textContent);
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    let currentDate = localStorage.getItem("laboe-current-run-date") || seedData.collection.run_date;
     let session = null;
     let leads = [];
     let batches = [];
@@ -248,8 +256,14 @@
       $("login").classList.add("hidden");
       $("app").classList.remove("hidden");
       $("user-pill").textContent = session.user.email || session.user.id;
+      $("date-picker").value = currentDate;
     }
 
+    $("date-picker").addEventListener("change", async (event) => {
+      currentDate = event.target.value || currentDate;
+      localStorage.setItem("laboe-current-run-date", currentDate);
+      await loadAll();
+    });
     $("login-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       $("login-error").textContent = "";
@@ -276,6 +290,7 @@
     $("profile-filter").addEventListener("change", renderLeads);
     $("status-filter").addEventListener("change", renderLeads);
     $("reply-search").addEventListener("input", renderReplySearch);
+    $("daily-import").addEventListener("change", importDailyJson);
 
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -287,30 +302,138 @@
 
     $("check-tables").addEventListener("click", async () => {
       const { error } = await client.from("laboe_collection_runs").select("run_date").limit(1);
-      $("seed-note").textContent = error ? "Connection failed: " + error.message : "Connection OK. Tables and policies are reachable.";
+      $("collection-note").textContent = error ? "Connection failed: " + error.message : "Connection OK. Tables and policies are reachable.";
+    });
+
+    $("start-collection").addEventListener("click", () => {
+      $("collection-note").textContent = "This browser dashboard cannot run Google Maps collection directly. Run the Codex/GitHub Action collector first, then import the generated JSON here.";
     });
 
     $("seed-today").addEventListener("click", async () => {
-      $("seed-note").textContent = "Uploading seed data...";
+      $("collection-note").textContent = "Uploading seed data...";
       const { error: runError } = await client.from("laboe_collection_runs").upsert(seedData.collection, { onConflict: "run_date" });
       if (runError) return noteSeedError(runError);
       const { error: batchError } = await client.from("laboe_send_batches").upsert(seedData.batch, { onConflict: "id" });
       if (batchError) return noteSeedError(batchError);
       const { error: leadError } = await client.from("laboe_leads").upsert(seedData.leads, { onConflict: "id" });
       if (leadError) return noteSeedError(leadError);
-      $("seed-note").textContent = "Seed complete: uploaded " + seedData.leads.length + " leads for WA01.";
+      setCurrentDate(seedData.collection.run_date);
+      $("collection-note").textContent = "Seed complete: uploaded " + seedData.leads.length + " leads for WA01.";
       await loadAll();
     });
 
     function noteSeedError(error) {
-      $("seed-note").textContent = "Seed failed: " + error.message + ". Usually this means setup.sql has not been run yet, or RLS policy is missing.";
+      $("collection-note").textContent = "Upload failed: " + error.message + ". Usually this means setup.sql has not been run yet, or RLS policy is missing.";
+    }
+
+    async function importDailyJson(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      try {
+        $("collection-note").textContent = "Reading " + file.name + "...";
+        const parsed = JSON.parse(await file.text());
+        const prepared = prepareDailyImport(parsed);
+        $("collection-note").textContent = "Uploading " + prepared.leads.length + " leads across " + prepared.batches.length + " WA lists...";
+        const { error: runError } = await client.from("laboe_collection_runs").upsert(prepared.collection, { onConflict: "run_date" });
+        if (runError) return noteSeedError(runError);
+        const { error: batchError } = await client.from("laboe_send_batches").upsert(prepared.batches, { onConflict: "id" });
+        if (batchError) return noteSeedError(batchError);
+        const { error: leadError } = await client.from("laboe_leads").upsert(prepared.leads, { onConflict: "id" });
+        if (leadError) return noteSeedError(leadError);
+        setCurrentDate(prepared.collection.run_date);
+        $("collection-note").textContent = "Import complete: " + prepared.leads.length + " leads, " + prepared.batches.length + " WA lists. Missing for 500: " + Math.max(500 - prepared.collection.ready_leads, 0) + ".";
+        await loadAll();
+      } catch (error) {
+        $("collection-note").textContent = "Import failed: " + error.message;
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function prepareDailyImport(parsed) {
+      const rawLeads = Array.isArray(parsed.newLeads) ? parsed.newLeads : Array.isArray(parsed.leads) ? parsed.leads : [];
+      if (!rawLeads.length) throw new Error("This JSON does not contain newLeads or leads.");
+      const runDate = parsed.date || rawLeads[0].date || new Date().toISOString().slice(0, 10);
+      const sourceLanes = Array.isArray(parsed.source_lanes) ? parsed.source_lanes : [];
+      const batchesById = new Map();
+      const leadsToUpload = rawLeads.slice(0, 500).map((lead, index) => {
+        const batchIndex = Math.floor(index / 50) + 1;
+        const sequence = (index % 50) + 1;
+        const profile = "WA" + String(batchIndex).padStart(2, "0");
+        const batchId = profile + "-" + runDate;
+        if (!batchesById.has(batchId)) {
+          batchesById.set(batchId, {
+            id: batchId,
+            run_date: runDate,
+            sender_profile: profile,
+            title: profile + "-" + runDate + " Send Dashboard",
+            target_count: 50,
+            status: "open",
+          });
+        }
+        const phone = String(lead.phone || "").replace(/\D/g, "");
+        return {
+          id: runDate + "-" + profile + "-" + String(sequence).padStart(2, "0") + "-" + phone,
+          run_date: runDate,
+          batch_id: batchId,
+          sender_profile: profile,
+          sender_sequence: sequence,
+          priority_rank: lead.priority_rank || index + 1,
+          business_name: lead.business_name || lead.businessName || "Unknown business",
+          industry: lead.industry || "",
+          source_platform: lead.source_platform || "",
+          source_lane: lead.source_lane || "",
+          google_maps_url: lead.google_maps_url || "",
+          website_or_social_url: lead.website_or_social_url || "",
+          address: lead.address || "",
+          city: lead.city || "",
+          country: lead.country || "Malaysia",
+          phone,
+          contact_channel: lead.contact_channel || "",
+          contact_details: lead.contact_details || "",
+          whatsapp_click_to_send_link: lead.whatsapp_click_to_send_link || lead.waLink || "",
+          active_or_public_evidence: lead.active_or_public_evidence || "",
+          observed_design_need: lead.observed_design_need || lead.observedNeed || "",
+          recommended_angle: lead.recommended_angle || lead.angle || "",
+          suggested_opening_message: lead.suggested_opening_message || lead.message || "",
+          lead_grade: lead.lead_grade || "A",
+          next_action: lead.next_action || "Send WhatsApp opener manually; mark status after sending.",
+          dedupe_key: lead.dedupe_key || "",
+          maps_category: lead.maps_category || "",
+          rating: lead.rating || null,
+          reviews: lead.reviews || null,
+          send_status: lead.send_status || "pending",
+          send_notes: lead.send_notes || "",
+        };
+      });
+      return {
+        collection: {
+          run_date: runDate,
+          target_leads: 500,
+          ready_leads: rawLeads.length,
+          assigned_leads: leadsToUpload.length,
+          source_lanes_attempted: sourceLanes.length,
+          active_source_lanes: sourceLanes.filter((lane) => Number(lane.accepted || 0) > 0).length,
+          suppressed_candidates: parsed.suppress_count || 0,
+          mode: "Imported from dashboard",
+          notes: rawLeads.length < 500 ? "Need more source lanes before reaching 500 daily leads." : "Imported 500 ready leads.",
+        },
+        batches: [...batchesById.values()],
+        leads: leadsToUpload,
+      };
+    }
+
+    function setCurrentDate(nextDate) {
+      currentDate = nextDate;
+      localStorage.setItem("laboe-current-run-date", currentDate);
+      $("date-picker").value = currentDate;
     }
 
     async function loadAll() {
       const [runRes, batchRes, leadRes] = await Promise.all([
-        client.from("laboe_collection_runs").select("*").eq("run_date", CURRENT_DATE).maybeSingle(),
-        client.from("laboe_send_batches").select("*").eq("run_date", CURRENT_DATE).order("sender_profile"),
-        client.from("laboe_leads").select("*").eq("run_date", CURRENT_DATE).order("sender_profile").order("sender_sequence"),
+        client.from("laboe_collection_runs").select("*").eq("run_date", currentDate).maybeSingle(),
+        client.from("laboe_send_batches").select("*").eq("run_date", currentDate).order("sender_profile"),
+        client.from("laboe_leads").select("*").eq("run_date", currentDate).order("sender_profile").order("sender_sequence"),
       ]);
       if (runRes.error) return showLoadError(runRes.error);
       if (batchRes.error) return showLoadError(batchRes.error);
@@ -389,7 +512,7 @@
           '<div class="meta-row"><span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span></div>' +
           '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '">Open List</button>' +
         '</article>';
-      }).join("") : '<p class="empty">No lists in Supabase yet. Go to Seed and upload WA01, or import daily WA01-WA10 data later.</p>';
+      }).join("") : '<p class="empty">No lists for ' + safe(currentDate) + '. Go to Collection and import a daily JSON file, or switch the Run Date.</p>';
     }
 
     function statsForBatch(batchId) {
