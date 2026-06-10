@@ -348,29 +348,9 @@
       $("collection-notice").textContent = "Saving request for " + targetDate + "...";
       const { error } = await client.from("laboe_collection_runs").upsert(request, { onConflict: "run_date" });
       if (error) return noteRequestError(error);
-      $("collection-notice").textContent = "Request saved for " + targetDate + ". Triggering GitHub Actions worker...";
-      const trigger = await triggerCollectionWorker(targetDate);
       await loadAll();
       startAutoRefresh();
-      $("collection-notice").textContent = trigger.ok
-        ? "Queued for " + targetDate + ". GitHub Actions worker was triggered from the dashboard."
-        : "Request saved for " + targetDate + ", but instant worker trigger failed: " + trigger.message + ". Check the Supabase Edge Function setup.";
-    }
-
-    async function triggerCollectionWorker(targetDate) {
-      try {
-        const { data, error } = await client.functions.invoke("start-collection", {
-          body: {
-            collection_date: targetDate,
-            target_leads: 500,
-          },
-        });
-        if (error) return { ok: false, message: error.message || "Function invoke failed" };
-        if (data && data.ok === false) return { ok: false, message: data.error || "Worker trigger failed" };
-        return { ok: true };
-      } catch (error) {
-        return { ok: false, message: error.message || String(error) };
-      }
+      $("collection-notice").textContent = "Queued for " + targetDate + ". The progress monitor will update when the worker starts and when WA01-WA10 are ready.";
     }
 
     function setCurrentDate(nextDate) {
