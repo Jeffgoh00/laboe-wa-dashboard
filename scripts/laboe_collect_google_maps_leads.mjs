@@ -355,8 +355,38 @@ function buildObservedNeed(industry) {
   return "Public listing suggests room for stronger social and promotional visuals.";
 }
 
-function buildMessage(name, industry, angle) {
-  return `Hi, good day. I'm Jeff from Laboe Studio (laboestudio.com). I came across ${name} and felt your ${industry.replaceAll(" / ", " / ")} visuals could be pushed further. ${angle} If helpful, I can send a few relevant sample works first.`;
+function stableIndex(value, length) {
+  let hash = 0;
+  for (const char of String(value)) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return hash % length;
+}
+
+function shortIndustry(industry) {
+  if (industry.includes("maternity") || industry.includes("baby") || industry.includes("kids")) return "parent/kids product";
+  if (industry.includes("pet")) return "pet/lifestyle";
+  if (industry.includes("beauty")) return "beauty/skincare";
+  if (industry.includes("florist")) return "gifting/florist";
+  if (industry.includes("fashion")) return "fashion retail";
+  if (industry.includes("restaurant") || industry.includes("cafe") || industry.includes("bakery")) return "food and beverage";
+  if (industry.includes("event") || industry.includes("wedding")) return "event/gifting";
+  return "business";
+}
+
+function buildMessage(name, industry, angle, seed = "") {
+  const type = shortIndustry(industry);
+  const templates = [
+    `Hi ${name}, Jeff here from Laboe Studio. I came across your ${type} brand and thought the visuals could be made stronger for social posts, promos, and product presentation. If useful, I can send over a few relevant samples first.`,
+    `Hello ${name}, this is Jeff from Laboe Studio. I noticed your ${type} listing and felt there may be room to make the brand visuals cleaner and more campaign-ready. I can share a few sample directions if you are open to it.`,
+    `Hi, I’m Jeff from Laboe Studio. Saw ${name} and liked the business category you are in. We help brands improve product visuals, social content, and promo creatives. Would it be okay if I send a few examples?`,
+    `Hi ${name}, Jeff from Laboe Studio here. Your business seems quite visual, so stronger social/product creatives could help customers understand the offer faster. Happy to send a few sample works first if helpful.`,
+    `Hello, I’m Jeff from Laboe Studio. I found ${name} while looking at local ${type} businesses. I think there are some simple ways to improve the visual direction for posts, promos, and customer enquiries. Can I share a few examples?`,
+    `Hi ${name}, reaching out from Laboe Studio. We work on brand visuals, product content, and campaign creatives. I thought your ${type} business could be a good fit for this. I can send references first, no hard pitch.`,
+    `你好 ${name}，我是 Jeff，来自 Laboe Studio。看到你们的业务后觉得产品/社媒/活动视觉还有机会做得更清楚、更吸引人。如果方便，我可以先发几个相关案例给你看。`,
+    `你好，我是 Laboe Studio 的 Jeff。刚看到 ${name}，觉得你们这种 ${type} 业务很适合加强产品图、社媒内容和促销视觉。你愿意的话我可以先发一些参考案例。`,
+  ];
+  return templates[stableIndex(`${seed}|${name}|${industry}`, templates.length)];
 }
 
 function isExcluded(row) {
@@ -464,7 +494,7 @@ function parsePayload(payload, query, city) {
       const rating = Array.isArray(arr[4]) ? arr[4][7] ?? "" : "";
       const reviews = findReviewCount(arr, arr[0]);
       const angle = buildAngle(industry, name);
-      const message = buildMessage(name, industry, angle);
+      const message = buildMessage(name, industry, angle, `${normalizedPhone}|${address}`);
       const row = {
         date,
         business_name: name,
