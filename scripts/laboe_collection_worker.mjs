@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -6,8 +7,9 @@ const execFileAsync = promisify(execFile);
 
 const supabaseUrl = mustEnv("SUPABASE_URL").replace(/\/$/, "");
 const serviceRoleKey = mustEnv("SUPABASE_SERVICE_ROLE_KEY");
-const targetLeads = Number(process.env.TARGET_LEADS || "500");
+const targetLeads = Number(process.env.TARGET_LEADS || "100");
 const explicitDate = process.env.COLLECTION_DATE || "";
+const historyFilePath = path.join("lead_outputs", "supabase-history.json");
 
 function mustEnv(name) {
   const value = process.env[name];
@@ -60,56 +62,60 @@ async function upsertRows(table, rows, conflictKey) {
   }
 }
 
-async function getExistingLeadStatus(runDate) {
-  const rows = await supabase("GET", "laboe_leads", {
-    query: `?select=phone,send_status,send_notes&run_date=eq.${encodeURIComponent(runDate)}`,
-  });
-  const statusByPhone = new Map();
-  for (const row of rows || []) {
-    if (!row.phone) continue;
-    statusByPhone.set(String(row.phone), {
-      send_status: row.send_status || "pending",
-      send_notes: row.send_notes || "",
+async function fetchAllExistingLeads() {
+  const pageSize = 1000;
+  const rows = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await supabase("GET", "laboe_leads", {
+      query: `?select=run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&order=id.asc&limit=${pageSize}&offset=${offset}`,
     });
+    rows.push(...(page || []));
+    if (!page || page.length < pageSize) break;
   }
-  return statusByPhone;
+  return rows;
 }
 
-async function clearExistingRunRows(runDate) {
-  await supabase("DELETE", "laboe_leads", {
-    query: `?run_date=eq.${encodeURIComponent(runDate)}`,
-  });
-  await supabase("DELETE", "laboe_send_batches", {
-    query: `?run_date=eq.${encodeURIComponent(runDate)}`,
-  });
+// The collector dedupes against every JSON pack inside lead_outputs/, so the
+// full Supabase lead history is written there before the collector starts.
+// This is the source of truth for "never contact the same business twice".
+async function writeSupabaseHistoryFile(existingLeads) {
+  await fs.mkdir(path.dirname(historyFilePath), { recursive: true });
+  await fs.writeFile(historyFilePath, JSON.stringify({ newLeads: existingLeads }));
 }
 
-function prepareDailyImport(parsed) {
+async function getNextListIndex(runDate) {
+  const rows = await supabase("GET", "laboe_send_batches", {
+    query: `?select=sender_profile&run_date=eq.${encodeURIComponent(runDate)}`,
+  });
+  let maxIndex = 0;
+  for (const row of rows || []) {
+    const match = String(row.sender_profile || "").match(/^WA(\d+)$/);
+    if (match) maxIndex = Math.max(maxIndex, Number(match[1]));
+  }
+  return maxIndex + 1;
+}
+
+function prepareRequestImport(parsed, runDate, listIndex, existingDayPhones, existingDayCount) {
   const rawLeads = Array.isArray(parsed.newLeads) ? parsed.newLeads : Array.isArray(parsed.leads) ? parsed.leads : [];
   if (!rawLeads.length) throw new Error("Collector returned no leads.");
 
-  const runDate = parsed.date || rawLeads[0].date || new Date().toISOString().slice(0, 10);
   const sourceLanes = Array.isArray(parsed.source_lanes) ? parsed.source_lanes : [];
-  const batchesById = new Map();
+  const profile = `WA${String(listIndex).padStart(2, "0")}`;
+  const batchId = `${profile}-${runDate}`;
 
-  const leads = rawLeads.slice(0, targetLeads).map((lead, index) => {
-    const batchIndex = Math.floor(index / 50) + 1;
-    const sequence = (index % 50) + 1;
-    const profile = `WA${String(batchIndex).padStart(2, "0")}`;
-    const batchId = `${profile}-${runDate}`;
-    if (!batchesById.has(batchId)) {
-      batchesById.set(batchId, {
-        id: batchId,
-        run_date: runDate,
-        sender_profile: profile,
-        title: `${profile}-${runDate} Send Dashboard`,
-        target_count: 50,
-        status: "open",
-      });
-    }
+  const freshLeads = rawLeads
+    .filter((lead) => {
+      const phone = String(lead.phone || "").replace(/\D/g, "");
+      return phone && !existingDayPhones.has(phone);
+    })
+    .slice(0, targetLeads);
+  if (!freshLeads.length) throw new Error("No new leads left after removing duplicates.");
+
+  const leads = freshLeads.map((lead, index) => {
+    const sequence = index + 1;
     const phone = String(lead.phone || "").replace(/\D/g, "");
     return {
-      id: `${runDate}-${profile}-${String(sequence).padStart(2, "0")}-${phone}`,
+      id: `${runDate}-${profile}-${String(sequence).padStart(3, "0")}-${phone}`,
       run_date: runDate,
       batch_id: batchId,
       sender_profile: profile,
@@ -143,19 +149,28 @@ function prepareDailyImport(parsed) {
     };
   });
 
+  const batch = {
+    id: batchId,
+    run_date: runDate,
+    sender_profile: profile,
+    title: `List ${listIndex} — ${runDate}`,
+    target_count: targetLeads,
+    status: "open",
+  };
+
   return {
     collection: {
       run_date: runDate,
       target_leads: targetLeads,
-      ready_leads: rawLeads.length,
-      assigned_leads: leads.length,
+      ready_leads: leads.length,
+      assigned_leads: existingDayCount + leads.length,
       source_lanes_attempted: sourceLanes.length,
       active_source_lanes: sourceLanes.filter((lane) => Number(lane.accepted || 0) > 0).length,
       suppressed_candidates: parsed.suppress_count || 0,
       mode: leads.length >= targetLeads ? "Collection completed by GitHub Actions" : "Collection short by GitHub Actions",
-      notes: `GitHub Actions imported ${leads.length} leads. Missing for target: ${Math.max(targetLeads - leads.length, 0)}.`,
+      notes: `GitHub Actions added ${leads.length} new leads into ${batch.title}. Total for ${runDate}: ${existingDayCount + leads.length}.`,
     },
-    batches: [...batchesById.values()],
+    batches: [batch],
     leads,
   };
 }
@@ -193,7 +208,7 @@ async function main() {
   await upsertRun({
     run_date: runDate,
     target_leads: targetLeads,
-    ready_leads: Number(request.ready_leads || 0),
+    ready_leads: 0,
     assigned_leads: Number(request.assigned_leads || 0),
     source_lanes_attempted: Number(request.source_lanes_attempted || 0),
     active_source_lanes: Number(request.active_source_lanes || 0),
@@ -203,25 +218,23 @@ async function main() {
   });
 
   try {
+    const existingLeads = await fetchAllExistingLeads();
+    await writeSupabaseHistoryFile(existingLeads);
+    const existingDayLeads = existingLeads.filter((row) => String(row.run_date) === String(runDate));
+    const existingDayPhones = new Set(existingDayLeads.map((row) => String(row.phone || "").replace(/\D/g, "")).filter(Boolean));
+
     const collectorJson = await runCollector(runDate);
-    const prepared = prepareDailyImport(collectorJson);
-    const existingStatus = await getExistingLeadStatus(prepared.collection.run_date);
-    for (const lead of prepared.leads) {
-      const preserved = existingStatus.get(String(lead.phone));
-      if (!preserved) continue;
-      lead.send_status = preserved.send_status;
-      lead.send_notes = preserved.send_notes;
-    }
-    await clearExistingRunRows(prepared.collection.run_date);
+    const listIndex = await getNextListIndex(runDate);
+    const prepared = prepareRequestImport(collectorJson, runDate, listIndex, existingDayPhones, existingDayLeads.length);
     await upsertRun(prepared.collection);
     await upsertRows("laboe_send_batches", prepared.batches, "id");
     await upsertRows("laboe_leads", prepared.leads, "id");
-    console.log(`Imported ${prepared.leads.length} leads for ${runDate}.`);
+    console.log(`Added ${prepared.leads.length} new leads for ${runDate} (${prepared.batches[0].title}).`);
   } catch (error) {
     await upsertRun({
       run_date: runDate,
       target_leads: targetLeads,
-      ready_leads: Number(request.ready_leads || 0),
+      ready_leads: 0,
       assigned_leads: Number(request.assigned_leads || 0),
       source_lanes_attempted: Number(request.source_lanes_attempted || 0),
       active_source_lanes: Number(request.active_source_lanes || 0),

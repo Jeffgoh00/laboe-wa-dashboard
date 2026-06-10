@@ -44,6 +44,8 @@
     .metric { padding:14px; }
     .metric span { display:block; color:var(--muted); font-size:12px; margin-bottom:5px; }
     .metric strong { font-size:24px; }
+    .metric[data-metric-status] { cursor:pointer; }
+    .metric[data-metric-status]:hover { border-color:var(--brand); box-shadow:0 2px 8px rgba(15,23,42,.12); }
     .shell { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:16px; align-items:start; }
     .main-column { min-width:0; display:grid; gap:14px; }
     .right-rail { position:sticky; top:18px; display:grid; gap:14px; }
@@ -137,8 +139,8 @@
           <section class="metric-grid">
             <div class="metric"><span>Total Leads</span><strong id="metric-total">0</strong></div>
             <div class="metric"><span>Sent</span><strong id="metric-sent">0</strong></div>
-            <div class="metric"><span>Replied</span><strong id="metric-replied">0</strong></div>
-            <div class="metric"><span>Bad / Skip</span><strong id="metric-bad">0</strong></div>
+            <div class="metric" data-metric-status="replied" title="Click to view replied leads"><span>Replied</span><strong id="metric-replied">0</strong></div>
+            <div class="metric" data-metric-status="bad_skip" title="Click to view bad / skipped leads"><span>Bad / Skip</span><strong id="metric-bad">0</strong></div>
             <div class="metric"><span>Completed Lists</span><strong id="metric-complete">0/0</strong></div>
           </section>
           <section class="panel">
@@ -156,21 +158,21 @@
             <div class="panel-head">
               <div>
                 <h2>Collection Monitor</h2>
-                <p>Daily target is 500 leads across WA01-WA10.</p>
+                <p>Each request collects 100 fresh leads with no duplicates.</p>
               </div>
               <span id="collection-state" class="status-chip">Loading</span>
             </div>
             <div class="ops-grid">
-              <div><span>Daily target</span><strong id="op-target">500</strong></div>
+              <div><span>Request target</span><strong id="op-target">100</strong></div>
               <div><span>Ready leads</span><strong id="op-ready">0</strong></div>
               <div><span>Assigned</span><strong id="op-assigned">0</strong></div>
-              <div><span>Missing</span><strong id="op-missing">500</strong></div>
+              <div><span>Missing</span><strong id="op-missing">100</strong></div>
               <div><span>Active lanes</span><strong id="op-lanes">0/0</strong></div>
               <div><span>Suppressed</span><strong id="op-suppressed">0</strong></div>
             </div>
             <div class="notice">
               <strong id="collection-mode">No request yet</strong>
-              <p id="collection-notes">Use Start Daily Collection to record today's request.</p>
+              <p id="collection-notes">Click Start Collection to request 100 fresh leads.</p>
             </div>
             <div class="collection-progress">
               <div class="progress"><i id="collection-progress-bar" style="width:0%"></i></div>
@@ -181,7 +183,7 @@
             </div>
             <div id="collection-notice" class="notice"></div>
             <div class="action-stack">
-              <button id="home-start-collection" class="primary" type="button">Start Daily Collection</button>
+              <button id="home-start-collection" class="primary" type="button">Start Collection (100 leads)</button>
             </div>
           </section>
         </aside>
@@ -205,6 +207,7 @@
             <option value="replied">Replied</option>
             <option value="bad">Bad number</option>
             <option value="skip">Skip</option>
+            <option value="bad_skip">Bad / Skip</option>
           </select>
         </div>
         <div id="lead-list" class="lead-list"></div>
@@ -336,12 +339,11 @@
     async function requestCollectionRun() {
       const targetDate = $("date-end").value || currentDate || new Date().toISOString().slice(0, 10);
       setCurrentDate(targetDate);
-      const existingReady = collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.ready_leads || 0) : 0;
       const existingAssigned = leads.filter((lead) => lead.run_date === targetDate).length;
       const request = {
         run_date: targetDate,
-        target_leads: 500,
-        ready_leads: existingReady,
+        target_leads: 100,
+        ready_leads: 0,
         assigned_leads: existingAssigned,
         source_lanes_attempted: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.source_lanes_attempted || 0) : 0,
         active_source_lanes: collectionRun && collectionRun.run_date === targetDate ? Number(collectionRun.active_source_lanes || 0) : 0,
@@ -367,7 +369,7 @@
         const { data, error } = await client.functions.invoke("start-collection", {
           body: {
             collection_date: targetDate,
-            target_leads: 500,
+            target_leads: 100,
           },
         });
         if (error) return { ok: false, message: error.message || "Function invoke failed" };
@@ -471,15 +473,15 @@
 
     function renderCollection() {
       const run = collectionRun || {
-        target_leads: 500,
+        target_leads: 100,
         ready_leads: 0,
         assigned_leads: leads.length,
         active_source_lanes: 0,
         source_lanes_attempted: 0,
         suppressed_candidates: 0,
       };
-      const missing = Math.max(Number(run.target_leads || 500) - Number(run.ready_leads || 0), 0);
-      $("op-target").textContent = run.target_leads || 500;
+      const missing = Math.max(Number(run.target_leads || 100) - Number(run.ready_leads || 0), 0);
+      $("op-target").textContent = run.target_leads || 100;
       $("op-ready").textContent = run.ready_leads || 0;
       $("op-assigned").textContent = run.assigned_leads || leads.length;
       $("op-missing").textContent = missing;
@@ -499,7 +501,7 @@
 
     function collectionProgress(run, missing) {
       const mode = String(run.mode || "").toLowerCase();
-      const target = Number(run.target_leads || 500);
+      const target = Number(run.target_leads || 100);
       const ready = Number(run.ready_leads || 0);
       const readyPercent = Math.min(100, Math.round((ready / target) * 100));
       if (mode.includes("failed")) {
@@ -542,7 +544,7 @@
           stateLabel: "Collecting",
           label: "Worker running",
           detail: "Collecting leads",
-          notice: "Worker is collecting leads now. WA01-WA10 will appear after it writes to Supabase.",
+          notice: "Worker is collecting leads now. The new list will appear after it writes to Supabase.",
           working: true,
         };
       }
@@ -551,9 +553,9 @@
           percent: 100,
           state: "ready",
           stateLabel: "Ready",
-          label: "WA01-WA10 ready",
+          label: "New list ready",
           detail: ready + "/" + target + " leads",
-          notice: "Daily collection target is ready. Split across WA01-WA10.",
+          notice: "This request is complete. The new list of fresh leads is in Daily Lists.",
           working: false,
         };
       }
@@ -564,7 +566,7 @@
           stateLabel: "Short",
           label: "Partially ready",
           detail: ready + "/" + target + " leads",
-          notice: "Still short by " + missing + " leads. Re-running the same source lanes may not add more because duplicates are filtered. Add or change source lanes before trying to reach 500.",
+          notice: "This request came back short by " + missing + " leads. Duplicates are filtered out, so re-running the same source lanes may not add more. Add or change source lanes to find more fresh leads.",
           working: false,
         };
       }
@@ -574,7 +576,7 @@
         stateLabel: "No Request",
         label: "Idle",
         detail: "Waiting for request",
-        notice: "Use Start Daily Collection when you are ready to collect today's WA01-WA10 lists.",
+        notice: "Click Start Collection to collect 100 fresh leads for the To date.",
         working: false,
       };
     }
@@ -595,7 +597,7 @@
       if (mode.includes("failed")) {
         return "A retry failed in GitHub Actions. The updated worker package fixes same-date duplicate imports; upload it, then run the workflow again for this date.";
       }
-      return run.notes || "Use Start Daily Collection to record today's request.";
+      return run.notes || "Click Start Collection to request 100 fresh leads.";
     }
 
     function renderHomeLists() {
@@ -610,7 +612,7 @@
           '<div class="meta-row"><span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span></div>' +
           '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '" data-open-batch="' + safe(batch.id) + '">Open List</button>' +
         '</article>';
-      }).join("") : '<p class="empty">No lists in this date range. Adjust From / To, or click Start Daily Collection for the To date.</p>';
+      }).join("") : '<p class="empty">No lists in this date range. Adjust From / To, or click Start Collection for the To date.</p>';
     }
 
     function statsForBatch(batchId) {
@@ -643,7 +645,9 @@
         const haystack = [lead.business_name, lead.industry, lead.sender_profile, lead.phone].join(" ").toLowerCase();
         if (activeListBatchId && lead.batch_id !== activeListBatchId) return false;
         if (profile !== "all" && lead.sender_profile !== profile) return false;
-        if (status !== "all" && lead.send_status !== status) return false;
+        if (status === "bad_skip") {
+          if (lead.send_status !== "bad" && lead.send_status !== "skip") return false;
+        } else if (status !== "all" && lead.send_status !== status) return false;
         if (!q) return true;
         return haystack.includes(q) || (digits && phone.includes(digits));
       });
@@ -690,6 +694,17 @@
         '</div>' +
       '</article>';
     }
+
+    document.querySelectorAll("[data-metric-status]").forEach((card) => {
+      card.addEventListener("click", () => {
+        activeListBatchId = "";
+        $("lead-filter").value = "";
+        $("profile-filter").value = "all";
+        $("status-filter").value = card.dataset.metricStatus;
+        showView("lists");
+        renderLeads();
+      });
+    });
 
     document.addEventListener("click", async (event) => {
       const openButton = event.target.closest("[data-open-profile]");

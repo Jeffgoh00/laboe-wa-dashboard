@@ -78,12 +78,12 @@ Important: `GITHUB_TOKEN` belongs in Supabase Function secrets only. Do not put 
 
 1. Open the dashboard.
 2. Select the `To` date you want to collect.
-3. Click `Start Daily Collection`.
+3. Click `Start Collection (100 leads)`.
 4. Dashboard saves the request in Supabase.
 5. Dashboard calls the Supabase Edge Function.
 6. The Edge Function triggers GitHub Actions immediately.
 7. Worker marks the request as processing.
-8. Worker collects leads and writes WA01-WA10 lists into Supabase.
+8. Worker collects 100 fresh leads, deduplicated against every lead already in Supabase plus the contact registry, and writes them into Supabase as one new list. Requesting again on the same date appends another list with the numbering continued.
 9. The dashboard progress monitor updates, then Daily Lists shows the result.
 
 ## 5. Run Worker Manually
@@ -106,4 +106,4 @@ The workflow still has this schedule as a fallback:
 cron: "*/5 * * * *"
 ```
 
-GitHub Actions cron is not exact to the minute, so it can run a little late. You only need to click `Start Daily Collection` in the dashboard; manual `Run workflow` is for testing or urgent retry.
+GitHub Actions cron is not exact to the minute, so it can run a little late. You only need to click `Start Collection` in the dashboard; manual `Run workflow` is for testing or urgent retry.

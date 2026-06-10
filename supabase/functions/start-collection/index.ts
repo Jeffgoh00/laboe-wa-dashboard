@@ -28,7 +28,7 @@ Deno.serve(async (request) => {
 
     const body = await request.json().catch(() => ({}));
     const collectionDate = String(body.collection_date || "").trim();
-    const targetLeads = String(body.target_leads || "500").trim();
+    const targetLeads = String(body.target_leads || "100").trim();
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(collectionDate)) {
       throw new Error("collection_date must be YYYY-MM-DD.");
