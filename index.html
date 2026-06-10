@@ -32,10 +32,12 @@
     .login-shell { max-width:420px; margin:12vh auto; background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); padding:24px; }
     .login-shell form { display:grid; gap:10px; margin-top:18px; }
     .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .date-strip { display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-bottom:16px; padding:10px 12px; }
+    .date-strip { display:flex; justify-content:flex-start; gap:10px; align-items:center; margin:0 0 16px; padding:0; }
     .date-range { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .date-range label { display:grid; gap:4px; color:#64748b; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
     .date-control { width:170px; }
+    .list-toolbar { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+    .back-button { min-width:132px; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--line); padding:6px 10px; background:#fff; color:#475569; font-size:13px; }
     .metric-grid { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
     .metric, .panel, .lead-card, .list-card { background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 1px 3px rgba(15,23,42,.05); }
@@ -110,7 +112,6 @@
     <aside class="sidebar">
       <div class="brand">Laboe<span>WA</span></div>
       <button class="nav-item active" data-view="home">Home</button>
-      <button class="nav-item" data-view="lists">Daily Lists</button>
       <button class="nav-item" data-view="search">Search</button>
     </aside>
     <main class="content">
@@ -118,16 +119,15 @@
         <div>
           <p class="eyebrow">Supabase Connected</p>
           <h1>WhatsApp Lead Home</h1>
-          <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip updates everyone after refresh or realtime sync.</p>
+          <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip syncs across every operator.</p>
         </div>
         <div class="top-actions">
           <span id="user-pill" class="pill"></span>
-          <button id="refresh">Refresh</button>
           <button id="logout">Logout</button>
         </div>
       </header>
 
-      <section class="panel date-strip">
+      <section class="date-strip">
         <div class="date-range">
           <label>From <input id="date-start" class="date-control" type="date"></label>
           <label>To <input id="date-end" class="date-control" type="date"></label>
@@ -194,11 +194,12 @@
       </section>
 
       <section id="lists-view" class="view panel hidden">
-        <div class="panel-head">
+        <div class="list-toolbar">
           <div>
-            <h2>Lead List</h2>
-            <p>Filter by date, WA profile, status, business, phone, or industry.</p>
+            <h2 id="list-title">Lead List</h2>
+            <p id="list-subtitle">Filter by date, WA profile, status, business, phone, or industry.</p>
           </div>
+          <button id="back-home" class="back-button" type="button">Back to Home</button>
         </div>
         <div class="filters">
           <input id="lead-filter" placeholder="Search business, phone, industry, WA profile">
@@ -240,6 +241,7 @@
     let leads = [];
     let batches = [];
     let collectionRun = null;
+    let activeListBatchId = "";
     let channel = null;
     let refreshTimer = null;
 
@@ -308,20 +310,29 @@
       location.reload();
     });
 
-    $("refresh").addEventListener("click", loadAll);
     $("lead-filter").addEventListener("input", renderLeads);
     $("profile-filter").addEventListener("change", renderLeads);
     $("status-filter").addEventListener("change", renderLeads);
     $("reply-search").addEventListener("input", renderReplySearch);
     $("home-start-collection").addEventListener("click", requestCollectionRun);
+    $("back-home").addEventListener("click", () => {
+      activeListBatchId = "";
+      $("lead-filter").value = "";
+      $("status-filter").value = "all";
+      showView("home");
+    });
 
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.addEventListener("click", () => {
-        document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item === button));
-        document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
-        $(button.dataset.view + "-view").classList.remove("hidden");
+        showView(button.dataset.view);
       });
     });
+
+    function showView(viewName) {
+      document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item.dataset.view === viewName));
+      document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
+      $(viewName + "-view").classList.remove("hidden");
+    }
 
     function noteRequestError(error) {
       $("collection-notice").textContent = "Request failed: " + error.message + ". Check setup.sql, RLS policies, and login session.";
@@ -348,9 +359,29 @@
       $("collection-notice").textContent = "Saving request for " + targetDate + "...";
       const { error } = await client.from("laboe_collection_runs").upsert(request, { onConflict: "run_date" });
       if (error) return noteRequestError(error);
+      $("collection-notice").textContent = "Request saved for " + targetDate + ". Triggering GitHub Actions worker...";
+      const trigger = await triggerCollectionWorker(targetDate);
       await loadAll();
       startAutoRefresh();
-      $("collection-notice").textContent = "Queued for " + targetDate + ". The progress monitor will update when the worker starts and when WA01-WA10 are ready.";
+      $("collection-notice").textContent = trigger.ok
+        ? "Queued for " + targetDate + ". GitHub Actions worker was triggered from the dashboard."
+        : "Request saved for " + targetDate + ", but instant worker trigger failed: " + trigger.message + ". Check the Supabase Edge Function setup.";
+    }
+
+    async function triggerCollectionWorker(targetDate) {
+      try {
+        const { data, error } = await client.functions.invoke("start-collection", {
+          body: {
+            collection_date: targetDate,
+            target_leads: 500,
+          },
+        });
+        if (error) return { ok: false, message: error.message || "Function invoke failed" };
+        if (data && data.ok === false) return { ok: false, message: data.error || "Worker trigger failed" };
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: error.message || String(error) };
+      }
     }
 
     function setCurrentDate(nextDate) {
@@ -390,7 +421,7 @@
     }
 
     function showLoadError(error) {
-      $("home-lists").innerHTML = '<p class="empty">Cannot load Supabase data: ' + safe(error.message) + '. Run setup.sql first, then refresh.</p>';
+      $("home-lists").innerHTML = '<p class="empty">Cannot load Supabase data: ' + safe(error.message) + '. Run setup.sql first, then reload the page.</p>';
     }
 
     function subscribeRealtime() {
@@ -583,7 +614,7 @@
           '<div class="meta-row"><span>' + safe(batch.run_date) + '</span><span>' + safe(batch.sender_profile) + '</span><span>' + stats.total + ' leads</span></div>' +
           '<div class="progress"><i style="width:' + progress + '%"></i></div>' +
           '<div class="meta-row"><span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span></div>' +
-          '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '">Open List</button>' +
+          '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '" data-open-batch="' + safe(batch.id) + '">Open List</button>' +
         '</article>';
       }).join("") : '<p class="empty">No lists in this date range. Adjust From / To, or click Start Daily Collection for the To date.</p>';
     }
@@ -616,6 +647,7 @@
       return leads.filter((lead) => {
         const phone = String(lead.phone || "").replace(/\D/g, "");
         const haystack = [lead.business_name, lead.industry, lead.sender_profile, lead.phone].join(" ").toLowerCase();
+        if (activeListBatchId && lead.batch_id !== activeListBatchId) return false;
         if (profile !== "all" && lead.sender_profile !== profile) return false;
         if (status !== "all" && lead.send_status !== status) return false;
         if (!q) return true;
@@ -625,6 +657,9 @@
 
     function renderLeads() {
       const rows = filteredLeads("lead-filter");
+      const batch = activeListBatchId ? batches.find((item) => item.id === activeListBatchId) : null;
+      $("list-title").textContent = batch ? batch.title : "Lead List";
+      $("list-subtitle").textContent = batch ? batch.run_date + " / " + batch.sender_profile + " / " + rows.length + " leads" : "Filter by date, WA profile, status, business, phone, or industry.";
       $("lead-list").innerHTML = rows.length ? rows.map(renderLeadCard).join("") : '<p class="empty">No leads match the current filters.</p>';
     }
 
@@ -665,7 +700,8 @@
     document.addEventListener("click", async (event) => {
       const openButton = event.target.closest("[data-open-profile]");
       if (openButton) {
-        document.querySelector('[data-view="lists"]').click();
+        activeListBatchId = openButton.dataset.openBatch || "";
+        showView("lists");
         $("profile-filter").value = openButton.dataset.openProfile;
         renderLeads();
         return;
