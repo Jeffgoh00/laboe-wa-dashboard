@@ -11,11 +11,13 @@ This folder is ready for GitHub Pages hosting.
 5. Click Run.
 6. Open index.html in a browser or push this folder to GitHub Pages.
 7. Login with the Supabase Auth user you created.
-8. Open the dashboard, select a From / To date range, and click "Start Daily Collection" for the To date.
+8. Deploy the Supabase Edge Function in `supabase/functions/start-collection`.
+9. Add the function secrets listed in `GITHUB_ACTIONS_SETUP.md`.
+10. Open the dashboard, select a From / To date range, and click "Start Daily Collection" for the To date.
 
 ## Daily collection flow
 
-The GitHub Pages app writes a collection request into Supabase. GitHub Actions collects the leads and writes WA01-WA10 lists back into Supabase. The dashboard listens for realtime updates and only uses temporary polling while a collection is queued or processing.
+The GitHub Pages app writes a collection request into Supabase, then calls the Supabase Edge Function `start-collection`. That function securely triggers GitHub Actions without exposing a GitHub token in the browser. GitHub Actions collects the leads and writes WA01-WA10 lists back into Supabase. The dashboard listens for realtime updates and only uses temporary polling while a collection is queued or processing.
 
 Manual Run workflow in GitHub Actions is only for testing or urgent collection. Normal users should only click Start Daily Collection in the dashboard.
 

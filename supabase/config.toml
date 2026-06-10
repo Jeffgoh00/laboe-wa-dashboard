@@ -1,0 +1,2 @@
+[functions.start-collection]
+verify_jwt = true
