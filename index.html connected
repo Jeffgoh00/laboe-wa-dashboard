@@ -99,7 +99,7 @@
   <div id="login" class="login-shell hidden">
     <p class="eyebrow">Laboe WA Lead OS</p>
     <h1>Sign in</h1>
-    <p class="subcopy">Use the Supabase Auth account you created, for example info@laboe.studio.</p>
+    <p class="subcopy">Use the  Auth account you created, for example info@laboe.studio.</p>
     <form id="login-form">
       <input id="email" type="email" placeholder="Email" autocomplete="email" required>
       <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
@@ -117,9 +117,7 @@
     <main class="content">
       <header class="page-header">
         <div>
-          <p class="eyebrow">Supabase Connected</p>
-          <h1>WhatsApp Lead Home</h1>
-          <p class="subcopy">One database for all Chrome profiles. Marking sent/replied/bad/skip syncs across every operator.</p>
+          <h1>WhatsApp Lead </h1>
         </div>
         <div class="top-actions">
           <span id="user-pill" class="pill"></span>
