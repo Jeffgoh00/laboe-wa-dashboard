@@ -363,85 +363,28 @@ function stableIndex(value, length) {
   return hash % length;
 }
 
-const fallbackMessageTemplates = [
-  (name) => `Hi ${name}, Jeff here from Laboe Studio. Your business looks quite visual, so stronger product, social, and promo creatives could help customers understand the offer faster. I can send a few relevant samples first if useful.`,
-  (name) => `Hello ${name}, this is Jeff from Laboe Studio. I came across your listing and felt the brand visuals could be made cleaner and more campaign-ready. Would it be okay if I share a few examples?`,
-  (name) => `Hi ${name}, Jeff from Laboe Studio here. We help local brands improve product visuals, social content, and promo creatives. Happy to send sample work first, no hard pitch.`,
-  (name) => `Hi, I'm Jeff from Laboe Studio. Found ${name} and thought stronger visual direction on posts and promos could support more customer enquiries. Can I send a few references?`,
+const openingVariants = [
+  `Hi, good day. I'm Jeff from Laboe Studio.`,
+  `Hello, I'm Jeff from Laboe Studio.`,
+  `Hi there, this is Jeff from Laboe Studio.`,
+  `Good day! Jeff here from Laboe Studio.`,
+  `Hi, Jeff reaching out from Laboe Studio.`,
 ];
 
-const industryMessageTemplates = new Map([
-  ["beauty / skincare / cosmetics", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. Came across your beauty brand and felt the product visuals could look even more premium — launch creatives, campaign shots, social content. Happy to send a few relevant samples first if useful.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. Beauty brands win on how premium the visuals feel, and I think there is room to elevate yours — product shots, promo creatives, social layouts. Open to seeing a few sample directions?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help beauty and skincare brands with campaign-ready product visuals and social content. I had a few quick ideas for your brand — can I share some examples? No hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Saw ${name} while looking at local beauty brands. Stronger product visuals and launch creatives usually shape how premium customers perceive the brand. Happy to send a few references first.`,
-  ]],
-  ["florist / gifting / lifestyle retail", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. Flowers and gifts are bought with the eyes, so sharper bouquet/gift photos and seasonal campaign graphics can convert a lot more browsers. I can send a few relevant samples first if helpful.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. Every gifting season, brands like yours win on visuals — promo creatives, gift set photos, festive campaign assets. Would it be okay if I share a few examples?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help florists and gifting brands make their seasonal promos and product photos look irresistible. Happy to send sample work first, no hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Found ${name} while looking at local gifting brands. Cleaner promo graphics and stronger product styling could help turn more casual browsers into buyers. Can I send a few references?`,
-  ]],
-  ["fashion / apparel / boutique", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. For boutiques, cleaner lookbook visuals and consistent social templates make new arrivals much easier to browse and share. I can send over a few relevant samples first.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. I noticed your boutique and felt the new-arrival and campaign visuals could carry a stronger, more consistent direction. Open to seeing a few sample directions?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help fashion brands with lookbooks, social media templates, and campaign assets. I had a few ideas for your brand — can I share some examples? No hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Saw ${name} while looking at local fashion retailers. Stronger visual direction on arrivals and promos usually lifts both engagement and walk-ins. Happy to send references first.`,
-  ]],
-  ["maternity / baby / kids product", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. Parents buy on trust, so clear, friendly product visuals and polished social content go a long way for baby/kids brands. I can send a few relevant samples first if useful.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. For parent-facing brands like yours, trust-led visuals — packaging, product shots, social content — make the brand feel clearer and more reliable. Would it be okay if I share a few examples?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help baby and kids brands look friendly and trustworthy through better product visuals and campaign creatives. Happy to send sample work first, no hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Found ${name} while looking at local parent/kids brands. Warmer, clearer visuals usually help parents trust and choose faster. Can I send a few references?`,
-  ]],
-  ["home / living / decor", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. For home and decor products, styling is everything — better catalog visuals and room-setting content can really lift perceived value. I can send a few relevant samples first.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. I came across your home/living brand and felt stronger lifestyle styling and catalog visuals could showcase the products' value better. Open to a few sample directions?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help home and decor brands with catalog visuals, room-setting content, and promo creatives. Can I share some examples? No hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Saw ${name} while looking at local home/living brands. Well-styled visuals usually change how much customers think a piece is worth. Happy to send references first.`,
-  ]],
-  ["jewelry / watches / accessories", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. Jewelry sells on detail — sharper close-up shots and premium social layouts can make every piece feel more desirable. I can send a few relevant samples first if useful.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. For detail-driven products like yours, premium product layouts and campaign content really change how desirable the pieces look online. Would it be okay if I share a few examples?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help jewelry and accessories brands with close-up product visuals and premium social creatives. Happy to send sample work first, no hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Found ${name} while looking at local jewelry brands. Crisper detail shots and a more premium layout usually lift perceived value immediately. Can I send a few references?`,
-  ]],
-  ["electronics / gadgets", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. For gadgets, customers decide fast when benefits are shown visually — clear comparison graphics and simple explainer creatives help a lot. I can send a few relevant samples first.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. I noticed your electronics business and felt clearer product-benefit visuals and promo layouts could help customers understand value faster. Open to a few sample directions?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help electronics brands with explainer visuals, comparison graphics, and promo creatives. Can I share some examples? No hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Saw ${name} while looking at local gadget retailers. Visual explainers usually convert better than spec lists. Happy to send references first.`,
-  ]],
-  ["restaurant / cafe / bakery", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. Food sells on appetite appeal — stronger menu/product photos and promo posters usually drive noticeably more walk-ins and orders. I can send a few relevant samples first if useful.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. I came across your F&B listing and felt the food visuals could look even more appetizing and consistent across Maps and social. Would it be okay if I share a few examples?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help cafes and restaurants with menu photography, promo posters, and short social content that make people hungry. Happy to send sample work first, no hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Found ${name} while looking at local F&B spots. Appetizing, consistent visuals on Maps and social usually translate directly into orders. Can I send a few references?`,
-  ]],
-  ["event / wedding / party / gifting", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. You sell moments, so clearer package visuals, event galleries, and seasonal campaign assets make enquiries much easier to convert. I can send a few relevant samples first.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. For event and wedding businesses, strong visual storytelling around packages and past events is what converts enquiries. Open to seeing a few sample directions?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help event and wedding brands present packages and galleries with stronger visual storytelling. Can I share some examples? No hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Saw ${name} while looking at local event businesses. Clearer package visuals and promo posts usually shorten the enquiry-to-booking gap. Happy to send references first.`,
-  ]],
-  ["pet / lifestyle services", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. Pet owners respond to warmth — friendlier service/product visuals and social content can make the brand much more approachable and memorable. I can send a few relevant samples first.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. I came across your pet business and felt warmer social content and friendlier visuals could really strengthen the brand. Would it be okay if I share a few examples?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help pet brands look warm and approachable through better visuals and simple promo creatives. Happy to send sample work first, no hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Found ${name} while looking at local pet businesses. Friendly, consistent visuals usually make pet owners trust and remember a brand faster. Can I send a few references?`,
-  ]],
-  ["fitness / studio", [
-    (name) => `Hi ${name}, Jeff here from Laboe Studio. For studios, clear class/program visuals and short video assets help people understand the experience before they ever walk in. I can send a few relevant samples first if useful.`,
-    (name) => `Hello ${name}, this is Jeff from Laboe Studio. I noticed your studio and felt clearer class visuals, promo posts, and social templates could make the experience easier to grasp at a glance. Open to a few sample directions?`,
-    (name) => `Hi ${name}, Jeff from Laboe Studio here. We help fitness studios with class/program visuals, promo creatives, and short-form video content. Can I share some examples? No hard pitch.`,
-    (name) => `Hi, I'm Jeff from Laboe Studio. Saw ${name} while looking at local studios. When people can visualise the class experience, sign-ups come easier. Happy to send references first.`,
-  ]],
-]);
+const closingVariants = [
+  `If helpful, I can send a few relevant sample works first.`,
+  `If you're open to it, I'd be happy to share a few relevant samples first.`,
+  `Happy to send over a few sample works first if that's useful — no hard pitch.`,
+  `If it sounds relevant, I can share a few examples of our work first.`,
+  `Would it be okay if I sent a few relevant samples over first?`,
+];
 
 function buildMessage(name, industry, angle, seed = "") {
-  const templates = industryMessageTemplates.get(industry) || fallbackMessageTemplates;
-  return templates[stableIndex(`${seed}|${name}|${industry}`, templates.length)](name);
+  const opening = openingVariants[stableIndex(`open|${seed}|${name}`, openingVariants.length)];
+  const closing = closingVariants[stableIndex(`close|${seed}|${industry}|${name}`, closingVariants.length)];
+  const industryPhrase = industry === "other visual-driven SME" ? "brand" : industry;
+  const middle = `I came across ${name} and felt your ${industryPhrase} visuals could be pushed further.`;
+  return `${opening} ${middle} ${angle} ${closing}`;
 }
 
 function isExcluded(row) {
@@ -630,30 +573,27 @@ async function loadHistoryKeys() {
   return keys;
 }
 
+// Dedupe only on signals that identify the SAME contactable business:
+// phone, Maps listing URL, or the exact name+phone+address key. We intentionally
+// do NOT suppress on business name / website / address alone, so a brand with a
+// different phone and address (e.g. a separate outlet) is kept as a new lead.
 function isHistoricalDuplicate(row, history, localSeen) {
   const phone = normalizeMalaysiaPhone(row.phone);
-  const brand = normalizeText(row.business_name);
   const url = normalizeText(row.google_maps_url);
-  const website = normalizeText(row.website_or_social_url);
-  const address = normalizeText(row.address);
   const dedupeKey = normalizeText(row.dedupe_key);
-  const localKey = `${brand}|${phone}|${address}`;
 
   const duplicate = (
-    history.phones.has(phone) ||
-    history.brands.has(brand) ||
-    history.urls.has(url) ||
-    (website && history.websites.has(website)) ||
-    (address && history.addresses.has(address)) ||
-    history.dedupeKeys.has(dedupeKey) ||
-    localSeen.has(localKey) ||
-    localSeen.has(phone) ||
-    localSeen.has(brand)
+    (phone && history.phones.has(phone)) ||
+    (url && history.urls.has(url)) ||
+    (dedupeKey && history.dedupeKeys.has(dedupeKey)) ||
+    (phone && localSeen.has(`p:${phone}`)) ||
+    (url && localSeen.has(`u:${url}`)) ||
+    (dedupeKey && localSeen.has(`k:${dedupeKey}`))
   );
   if (!duplicate) {
-    localSeen.add(localKey);
-    localSeen.add(phone);
-    localSeen.add(brand);
+    if (phone) localSeen.add(`p:${phone}`);
+    if (url) localSeen.add(`u:${url}`);
+    if (dedupeKey) localSeen.add(`k:${dedupeKey}`);
   }
   return duplicate;
 }
@@ -704,6 +644,20 @@ function selectWithIndustryMix(candidates, target) {
     const quota = targetQuotas.get(row.industry);
     if (quota && (counts.get(row.industry) ?? 0) >= quota + 8) continue;
     add(row);
+  }
+
+  // Final fill: if the preferred industry mix still leaves us short of target,
+  // top up with any remaining unique candidate regardless of quota/cap, so a
+  // shortfall in one industry is backfilled by others to reach the full target.
+  if (selected.length < target) {
+    for (const row of sorted) {
+      if (selected.length >= target) break;
+      const key = row.dedupe_key;
+      if (selectedKeys.has(key)) continue;
+      selected.push(row);
+      selectedKeys.add(key);
+      counts.set(row.industry, (counts.get(row.industry) ?? 0) + 1);
+    }
   }
 
   return selected.slice(0, target);
