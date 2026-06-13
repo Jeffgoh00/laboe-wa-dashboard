@@ -611,7 +611,7 @@
       const [runRes, batchRes, leadRes] = await Promise.all([
         client.from("laboe_collection_runs").select("*").eq("merchant_id", myMerchantId).eq("run_date", currentDate).maybeSingle(),
         client.from("laboe_send_batches").select("*").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile"),
-        client.from("laboe_leads").select("*").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
+        client.from("laboe_leads").select("id,run_date,batch_id,sender_profile,sender_sequence,business_name,industry,phone,google_maps_url,suggested_opening_message,observed_design_need,whatsapp_click_to_send_link,send_status,merchant_id").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
       ]);
       if (runRes.error) return showLoadError(runRes.error);
       if (batchRes.error) return showLoadError(batchRes.error);
@@ -628,12 +628,14 @@
       $("home-lists").innerHTML = '<p class="empty">Cannot load Supabase data: ' + safe(error.message) + '. Run setup.sql first, then reload the page.</p>';
     }
 
+    function debounce(fn, ms) { let t; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
+    const reloadSoon = debounce(loadAll, 700);
     function subscribeRealtime() {
       if (channel) client.removeChannel(channel);
       channel = client.channel("lead-status-sync")
-        .on("postgres_changes", { event: "*", schema: "public", table: "laboe_leads" }, loadAll)
-        .on("postgres_changes", { event: "*", schema: "public", table: "laboe_send_batches" }, loadAll)
-        .on("postgres_changes", { event: "*", schema: "public", table: "laboe_collection_runs" }, loadAll)
+        .on("postgres_changes", { event: "*", schema: "public", table: "laboe_leads" }, reloadSoon)
+        .on("postgres_changes", { event: "*", schema: "public", table: "laboe_send_batches" }, reloadSoon)
+        .on("postgres_changes", { event: "*", schema: "public", table: "laboe_collection_runs" }, reloadSoon)
         .subscribe();
     }
 
