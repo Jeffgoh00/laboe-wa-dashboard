@@ -272,7 +272,10 @@
         <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy">1,500 leads / month</p><div class="plan-cta" style="margin-top:10px;"></div></div>
         <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy">3,000 leads / month</p><div class="plan-cta" style="margin-top:10px;"></div></div>
       </div>
-      <div class="action-stack"><button id="close-upgrade" type="button">Close</button></div>
+      <div class="action-stack">
+        <button id="manage-billing" type="button">Manage billing / invoices</button>
+        <button id="close-upgrade" type="button">Close</button>
+      </div>
     </div>
   </div>
 
@@ -414,11 +417,25 @@
       $("upgrade-modal").classList.remove("hidden");
     });
     $("close-upgrade").addEventListener("click", () => $("upgrade-modal").classList.add("hidden"));
-    $("upgrade-modal").addEventListener("click", (e) => {
+    $("upgrade-modal").addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-upgrade]");
       if (!btn) return;
-      // Stripe 接好前的占位：先提示联系。Phase C 后这里改成跳 Stripe Checkout。
-      $("upgrade-current").textContent = "To upgrade to " + (TIER_NAMES[btn.dataset.upgrade] || btn.dataset.upgrade) + ", online checkout is coming soon — contact Laboe Studio to upgrade now.";
+      btn.disabled = true; btn.textContent = "Redirecting…";
+      const { data, error } = await client.functions.invoke("create-checkout", { body: { tier: btn.dataset.upgrade } });
+      if (error || !data || !data.url) {
+        $("upgrade-current").textContent = "Could not start checkout: " + ((error && error.message) || (data && data.error) || "unknown error");
+        btn.disabled = false; btn.textContent = "Upgrade"; return;
+      }
+      window.location.href = data.url;
+    });
+    $("manage-billing").addEventListener("click", async () => {
+      const b = $("manage-billing"); b.disabled = true; b.textContent = "Opening…";
+      const { data, error } = await client.functions.invoke("customer-portal", { body: {} });
+      if (error || !data || !data.url) {
+        $("upgrade-current").textContent = "Billing portal: " + ((error && error.message) || (data && data.error) || "subscribe to a plan first");
+        b.disabled = false; b.textContent = "Manage billing / invoices"; return;
+      }
+      window.location.href = data.url;
     });
     $("back-home").addEventListener("click", () => {
       activeListBatchId = "";
