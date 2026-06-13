@@ -380,12 +380,13 @@ function stableIndex(value, length) {
   return hash % length;
 }
 
+// {{SENDER}} / {{COMPANY}} 占位符 —— portal 渲染时替换成商户自填的名字/公司。
 const openingVariants = [
-  `Hi, good day. I'm Jeff from Laboe Studio.`,
-  `Hello, I'm Jeff from Laboe Studio.`,
-  `Hi there, this is Jeff from Laboe Studio.`,
-  `Good day! Jeff here from Laboe Studio.`,
-  `Hi, Jeff reaching out from Laboe Studio.`,
+  `Hi, good day. I'm {{SENDER}} from {{COMPANY}}.`,
+  `Hello, I'm {{SENDER}} from {{COMPANY}}.`,
+  `Hi there, this is {{SENDER}} from {{COMPANY}}.`,
+  `Good day! {{SENDER}} here from {{COMPANY}}.`,
+  `Hi, {{SENDER}} reaching out from {{COMPANY}}.`,
 ];
 
 const closingVariants = [
