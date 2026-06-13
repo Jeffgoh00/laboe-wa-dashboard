@@ -10,6 +10,12 @@ on:
         description: "Target leads to collect"
         required: false
         default: "100"
+      merchant_id:
+        description: "Merchant to assign leads to. Blank = worker picks oldest pending search_request."
+        required: false
+      search_request_id:
+        description: "search_requests row id to mark complete. Optional."
+        required: false
   schedule:
     - cron: "*/5 * * * *"
 
@@ -39,6 +45,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           COLLECTION_DATE: ${{ github.event.inputs.collection_date }}
           TARGET_LEADS: ${{ github.event.inputs.target_leads }}
+          MERCHANT_ID: ${{ github.event.inputs.merchant_id }}
+          SEARCH_REQUEST_ID: ${{ github.event.inputs.search_request_id }}
         run: |
           export TARGET_LEADS="${TARGET_LEADS:-100}"
           node scripts/laboe_collection_worker.mjs

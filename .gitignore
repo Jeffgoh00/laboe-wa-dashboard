@@ -1,0 +1,21 @@
+# 本地密钥 —— 永不上传 GitHub
+.env.local
+.env
+
+# 本地全局视图（含 service/secret key）—— 永不上传
+global-view.html
+
+# 采集中间产物
+lead_outputs/
+
+# 依赖
+node_modules/
+
+# 系统
+.DS_Store
+
+# 本地迁移工具（含 pg 依赖）—— 不上传
+tools/
+
+# 内部计划文档，不进 repo
+MULTITENANCY_PLAN.md

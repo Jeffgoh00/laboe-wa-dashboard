@@ -15,7 +15,7 @@ $$;
 
 create table if not exists public.laboe_collection_runs (
   run_date date primary key,
-  target_leads integer not null default 500,
+  target_leads integer not null default 100,
   ready_leads integer not null default 0,
   assigned_leads integer not null default 0,
   source_lanes_attempted integer not null default 0,
@@ -96,7 +96,8 @@ create table if not exists public.laboe_lead_status_events (
 -- If you created an earlier version of these tables, "create table if not exists"
 -- will not modify the old columns. These ALTER statements safely add the
 -- missing fields this dashboard needs.
-alter table if exists public.laboe_collection_runs add column if not exists target_leads integer not null default 500;
+alter table if exists public.laboe_collection_runs add column if not exists target_leads integer not null default 100;
+alter table if exists public.laboe_collection_runs alter column target_leads set default 100;
 alter table if exists public.laboe_collection_runs add column if not exists ready_leads integer not null default 0;
 alter table if exists public.laboe_collection_runs add column if not exists assigned_leads integer not null default 0;
 alter table if exists public.laboe_collection_runs add column if not exists source_lanes_attempted integer not null default 0;

@@ -363,30 +363,28 @@ function stableIndex(value, length) {
   return hash % length;
 }
 
-function shortIndustry(industry) {
-  if (industry.includes("maternity") || industry.includes("baby") || industry.includes("kids")) return "parent/kids product";
-  if (industry.includes("pet")) return "pet/lifestyle";
-  if (industry.includes("beauty")) return "beauty/skincare";
-  if (industry.includes("florist")) return "gifting/florist";
-  if (industry.includes("fashion")) return "fashion retail";
-  if (industry.includes("restaurant") || industry.includes("cafe") || industry.includes("bakery")) return "food and beverage";
-  if (industry.includes("event") || industry.includes("wedding")) return "event/gifting";
-  return "business";
-}
+const openingVariants = [
+  `Hi, good day. I'm Jeff from Laboe Studio.`,
+  `Hello, I'm Jeff from Laboe Studio.`,
+  `Hi there, this is Jeff from Laboe Studio.`,
+  `Good day! Jeff here from Laboe Studio.`,
+  `Hi, Jeff reaching out from Laboe Studio.`,
+];
+
+const closingVariants = [
+  `If helpful, I can send a few relevant sample works first.`,
+  `If you're open to it, I'd be happy to share a few relevant samples first.`,
+  `Happy to send over a few sample works first if that's useful — no hard pitch.`,
+  `If it sounds relevant, I can share a few examples of our work first.`,
+  `Would it be okay if I sent a few relevant samples over first?`,
+];
 
 function buildMessage(name, industry, angle, seed = "") {
-  const type = shortIndustry(industry);
-  const templates = [
-    `Hi ${name}, Jeff here from Laboe Studio. I came across your ${type} brand and thought the visuals could be made stronger for social posts, promos, and product presentation. If useful, I can send over a few relevant samples first.`,
-    `Hello ${name}, this is Jeff from Laboe Studio. I noticed your ${type} listing and felt there may be room to make the brand visuals cleaner and more campaign-ready. I can share a few sample directions if you are open to it.`,
-    `Hi, I’m Jeff from Laboe Studio. Saw ${name} and liked the business category you are in. We help brands improve product visuals, social content, and promo creatives. Would it be okay if I send a few examples?`,
-    `Hi ${name}, Jeff from Laboe Studio here. Your business seems quite visual, so stronger social/product creatives could help customers understand the offer faster. Happy to send a few sample works first if helpful.`,
-    `Hello, I’m Jeff from Laboe Studio. I found ${name} while looking at local ${type} businesses. I think there are some simple ways to improve the visual direction for posts, promos, and customer enquiries. Can I share a few examples?`,
-    `Hi ${name}, reaching out from Laboe Studio. We work on brand visuals, product content, and campaign creatives. I thought your ${type} business could be a good fit for this. I can send references first, no hard pitch.`,
-    `你好 ${name}，我是 Jeff，来自 Laboe Studio。看到你们的业务后觉得产品/社媒/活动视觉还有机会做得更清楚、更吸引人。如果方便，我可以先发几个相关案例给你看。`,
-    `你好，我是 Laboe Studio 的 Jeff。刚看到 ${name}，觉得你们这种 ${type} 业务很适合加强产品图、社媒内容和促销视觉。你愿意的话我可以先发一些参考案例。`,
-  ];
-  return templates[stableIndex(`${seed}|${name}|${industry}`, templates.length)];
+  const opening = openingVariants[stableIndex(`open|${seed}|${name}`, openingVariants.length)];
+  const closing = closingVariants[stableIndex(`close|${seed}|${industry}|${name}`, closingVariants.length)];
+  const industryPhrase = industry === "other visual-driven SME" ? "brand" : industry;
+  const middle = `I came across ${name} and felt your ${industryPhrase} visuals could be pushed further.`;
+  return `${opening} ${middle} ${angle} ${closing}`;
 }
 
 function isExcluded(row) {
@@ -575,30 +573,27 @@ async function loadHistoryKeys() {
   return keys;
 }
 
+// Dedupe only on signals that identify the SAME contactable business:
+// phone, Maps listing URL, or the exact name+phone+address key. We intentionally
+// do NOT suppress on business name / website / address alone, so a brand with a
+// different phone and address (e.g. a separate outlet) is kept as a new lead.
 function isHistoricalDuplicate(row, history, localSeen) {
   const phone = normalizeMalaysiaPhone(row.phone);
-  const brand = normalizeText(row.business_name);
   const url = normalizeText(row.google_maps_url);
-  const website = normalizeText(row.website_or_social_url);
-  const address = normalizeText(row.address);
   const dedupeKey = normalizeText(row.dedupe_key);
-  const localKey = `${brand}|${phone}|${address}`;
 
   const duplicate = (
-    history.phones.has(phone) ||
-    history.brands.has(brand) ||
-    history.urls.has(url) ||
-    (website && history.websites.has(website)) ||
-    (address && history.addresses.has(address)) ||
-    history.dedupeKeys.has(dedupeKey) ||
-    localSeen.has(localKey) ||
-    localSeen.has(phone) ||
-    localSeen.has(brand)
+    (phone && history.phones.has(phone)) ||
+    (url && history.urls.has(url)) ||
+    (dedupeKey && history.dedupeKeys.has(dedupeKey)) ||
+    (phone && localSeen.has(`p:${phone}`)) ||
+    (url && localSeen.has(`u:${url}`)) ||
+    (dedupeKey && localSeen.has(`k:${dedupeKey}`))
   );
   if (!duplicate) {
-    localSeen.add(localKey);
-    localSeen.add(phone);
-    localSeen.add(brand);
+    if (phone) localSeen.add(`p:${phone}`);
+    if (url) localSeen.add(`u:${url}`);
+    if (dedupeKey) localSeen.add(`k:${dedupeKey}`);
   }
   return duplicate;
 }
@@ -649,6 +644,20 @@ function selectWithIndustryMix(candidates, target) {
     const quota = targetQuotas.get(row.industry);
     if (quota && (counts.get(row.industry) ?? 0) >= quota + 8) continue;
     add(row);
+  }
+
+  // Final fill: if the preferred industry mix still leaves us short of target,
+  // top up with any remaining unique candidate regardless of quota/cap, so a
+  // shortfall in one industry is backfilled by others to reach the full target.
+  if (selected.length < target) {
+    for (const row of sorted) {
+      if (selected.length >= target) break;
+      const key = row.dedupe_key;
+      if (selectedKeys.has(key)) continue;
+      selected.push(row);
+      selectedKeys.add(key);
+      counts.set(row.industry, (counts.get(row.industry) ?? 0) + 1);
+    }
   }
 
   return selected.slice(0, target);
