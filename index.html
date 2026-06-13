@@ -108,8 +108,11 @@
     /* 升级弹窗 */
     .modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; align-items:center; justify-content:center; z-index:50; }
     .modal { background:#fff; border-radius:12px; max-width:600px; width:92%; padding:24px; box-shadow:var(--shadow); }
-    .plans { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; }
-    .plan-card { border:1px solid var(--line); border-radius:12px; padding:18px 16px; text-align:center; transition:box-shadow .15s ease, transform .15s ease; }
+    .plans { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; align-items:stretch; }
+    .plan-card { border:1px solid var(--line); border-radius:12px; padding:18px 16px; text-align:center; transition:box-shadow .15s ease, transform .15s ease; display:flex; flex-direction:column; }
+    .plan-cta { margin-top:auto; padding-top:14px; }
+    .plan-cta button { width:100%; min-height:42px; }
+    .plan-current { min-height:42px; display:flex; align-items:center; justify-content:center; color:var(--brand); font-weight:700; }
     .plan-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.1); transform:translateY(-2px); }
     .plan-card.current { border-color:var(--brand); background:var(--green-soft); }
     .plan-card h3 { font-size:16px; }
@@ -270,9 +273,9 @@
       <h2>Plans</h2>
       <p class="subcopy" id="upgrade-current" style="margin:0 0 14px;"></p>
       <div class="plans">
-        <div class="plan-card" data-plan="tier1"><h3>Basic</h3><div class="price">RM99<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.19 / lead</p><p class="subcopy" style="margin:4px 0 0;">500 leads / month</p><div class="plan-cta" style="margin-top:12px;"></div></div>
-        <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.16 / lead</p><p class="subcopy" style="margin:4px 0 0;">1,200 leads / month</p><div class="plan-cta" style="margin-top:12px;"></div></div>
-        <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.12 / lead</p><p class="subcopy" style="margin:4px 0 0;">2,500 leads / month</p><div class="plan-cta" style="margin-top:12px;"></div></div>
+        <div class="plan-card" data-plan="tier1"><h3>Basic</h3><div class="price">RM99<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.19 / lead</p><p class="subcopy" style="margin:4px 0 0;">500 leads / month</p><div class="plan-cta"></div></div>
+        <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.16 / lead</p><p class="subcopy" style="margin:4px 0 0;">1,200 leads / month</p><div class="plan-cta"></div></div>
+        <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.12 / lead</p><p class="subcopy" style="margin:4px 0 0;">2,500 leads / month</p><div class="plan-cta"></div></div>
       </div>
       <p style="margin:16px 0 2px;text-align:center;font-weight:800;color:var(--brand);font-size:17px;">More leads. More chances to close clients.</p>
       <p style="margin:0 0 16px;text-align:center;font-size:16px;color:var(--muted);">One project can cover months of your plan.</p>
@@ -415,9 +418,9 @@
         const cta = c.querySelector(".plan-cta");
         if (!cta) return;
         const tRank = TIER_RANK[t] ?? 0;
-        if (t === myTier) cta.innerHTML = '<span style="color:var(--brand);font-weight:700">✓ Current plan</span>';
-        else if (tRank > myRank) cta.innerHTML = '<button class="primary" data-upgrade="' + t + '" style="width:100%">Upgrade</button>';
-        else if (myTier !== "none") cta.innerHTML = '<button data-downgrade="' + t + '" style="width:100%">Downgrade</button>';
+        if (t === myTier) cta.innerHTML = '<div class="plan-current">✓ Current plan</div>';
+        else if (tRank > myRank) cta.innerHTML = '<button class="primary" data-upgrade="' + t + '">Upgrade</button>';
+        else if (myTier !== "none") cta.innerHTML = '<button data-downgrade="' + t + '">Downgrade</button>';
         else cta.innerHTML = "";
       });
       $("upgrade-modal").classList.remove("hidden");
