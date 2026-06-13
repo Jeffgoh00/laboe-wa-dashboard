@@ -86,6 +86,8 @@
     .empty { padding:18px; color:#64748b; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; }
     .hidden { display:none !important; }
     .link { color:#1d4ed8; cursor:pointer; text-decoration:underline; font-weight:600; }
+    .fade-in { animation: fadeIn .28s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     /* 固定视口：整页不滚，只 Daily Lists 内部滚 */
     .content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
     #home-view.shell { flex:1; min-height:0; }
@@ -359,8 +361,9 @@
       syncAutoRefresh();
     });
 
-    $("to-signup").addEventListener("click", () => { $("login-view").classList.add("hidden"); $("signup-view").classList.remove("hidden"); });
-    $("to-login").addEventListener("click", () => { $("signup-view").classList.add("hidden"); $("login-view").classList.remove("hidden"); });
+    function reveal(el) { el.classList.remove("hidden", "fade-in"); void el.offsetWidth; el.classList.add("fade-in"); }
+    $("to-signup").addEventListener("click", () => { $("login-view").classList.add("hidden"); reveal($("signup-view")); });
+    $("to-login").addEventListener("click", () => { $("signup-view").classList.add("hidden"); reveal($("login-view")); });
     $("signup-form").addEventListener("submit", async (event) => {
       event.preventDefault(); $("signup-error").textContent = "";
       const email = $("su-email").value.trim();
