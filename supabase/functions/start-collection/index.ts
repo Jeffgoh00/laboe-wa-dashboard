@@ -41,7 +41,7 @@ Deno.serve(async (request) => {
     // 1) 认出当前商户
     const userId = userIdFromJwt(request.headers.get("Authorization") || "");
     const lookup = await fetch(
-      `${supabaseUrl}/rest/v1/laboe_merchant_users?select=merchant_id,laboe_merchants(status,target_leads,monthly_lead_cap)&user_id=eq.${userId}`,
+      `${supabaseUrl}/rest/v1/laboe_merchant_users?select=merchant_id,laboe_merchants(status,target_leads,monthly_lead_cap,tier,trial_used)&user_id=eq.${userId}`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
     );
     const rows = await lookup.json();
@@ -53,9 +53,24 @@ Deno.serve(async (request) => {
       return json({ ok: false, error: `Merchant is ${merchant.status}.` }, 403);
     }
 
-    // 月度额度上限：OWNER 或 cap=null 无限；否则数本月已采集 leads
+    // 额度 / 免费试用逻辑
+    const tier = merchant.tier;
     const cap = merchant.monthly_lead_cap;
-    if (merchantId !== "OWNER" && cap != null) {
+    if (merchantId === "OWNER" || tier === "unlimited") {
+      // 无限，放行
+    } else if (tier === "none") {
+      // 无 plan：只能免费试 1 次
+      if (merchant.trial_used) {
+        return json({ ok: false, error: "Free trial used. Please subscribe to a plan to keep collecting." }, 403);
+      }
+      // 先标记试用已用，防并发双刷
+      await fetch(`${supabaseUrl}/rest/v1/laboe_merchants?merchant_id=eq.${encodeURIComponent(merchantId)}`, {
+        method: "PATCH",
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ trial_used: true }),
+      });
+    } else if (cap != null) {
+      // 付费 tier：月度 cap
       const now = new Date();
       const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
       const usedRes = await fetch(

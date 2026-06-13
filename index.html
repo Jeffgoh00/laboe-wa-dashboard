@@ -273,9 +273,10 @@
     let myMerchantId = null;
     let senderName = "";
     let companyName = "";
-    let myTier = "tier1";
-    let myCap = 800;
-    const TIER_NAMES = { tier1: "Basic", tier2: "Pro", tier3: "Max", unlimited: "Unlimited", owner: "Owner" };
+    let myTier = "none";
+    let myCap = null;
+    let myTrialUsed = false;
+    const TIER_NAMES = { none: "No plan", tier1: "Basic", tier2: "Pro", tier3: "Max", unlimited: "Unlimited", owner: "Owner" };
 
     const $ = (id) => document.getElementById(id);
     const setText = (id, v) => { const e = $(id); if (e) e.textContent = v; };
@@ -457,9 +458,10 @@
       companyName = s && s.company_name ? s.company_name : "";
       if ($("sender-name")) $("sender-name").value = senderName;
       if ($("sender-company")) $("sender-company").value = companyName;
-      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap").eq("merchant_id", myMerchantId).maybeSingle();
-      myTier = mer && mer.tier ? mer.tier : "tier1";
-      myCap = mer ? mer.monthly_lead_cap : 800;
+      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used").eq("merchant_id", myMerchantId).maybeSingle();
+      myTier = mer && mer.tier ? mer.tier : "none";
+      myCap = mer ? mer.monthly_lead_cap : null;
+      myTrialUsed = mer ? !!mer.trial_used : false;
     }
 
     async function renderPlan() {
@@ -470,7 +472,13 @@
       const { count } = await client.from("laboe_leads").select("id", { count: "exact", head: true }).eq("merchant_id", myMerchantId).gte("created_at", ms);
       const used = count || 0;
       const name = TIER_NAMES[myTier] || myTier;
-      el.textContent = name + " · " + (myCap == null ? (used + " (∞)") : (used + "/" + myCap));
+      if (myTier === "none") {
+        el.textContent = myTrialUsed ? "No plan · Subscribe" : "Free trial · 1 collection left";
+      } else if (myTier === "unlimited" || myTier === "owner" || myCap == null) {
+        el.textContent = name + " · Unlimited";
+      } else {
+        el.textContent = name + " · " + used + "/" + myCap;
+      }
     }
 
     function personalize(text) {
