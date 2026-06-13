@@ -268,14 +268,14 @@
   <div id="upgrade-modal" class="modal-backdrop hidden">
     <div class="modal">
       <h2>Plans</h2>
-      <p class="subcopy" id="upgrade-current"></p>
-      <p style="margin:2px 0 2px;font-weight:800;color:var(--brand);font-size:15px;">More leads. More chances to close clients.</p>
-      <p class="subcopy" style="margin:0 0 14px;">One project can cover months of your plan.</p>
+      <p class="subcopy" id="upgrade-current" style="margin:0 0 14px;"></p>
       <div class="plans">
-        <div class="plan-card" data-plan="tier1"><h3>Basic</h3><div class="price">RM99<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy" style="margin:6px 0 0;">500 leads / month</p><p style="margin:4px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.19 / lead</p><div class="plan-cta" style="margin-top:12px;"></div></div>
-        <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy" style="margin:6px 0 0;">1,200 leads / month</p><p style="margin:4px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.16 / lead</p><div class="plan-cta" style="margin-top:12px;"></div></div>
-        <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy" style="margin:6px 0 0;">2,500 leads / month</p><p style="margin:4px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.12 / lead</p><div class="plan-cta" style="margin-top:12px;"></div></div>
+        <div class="plan-card" data-plan="tier1"><h3>Basic</h3><div class="price">RM99<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.19 / lead</p><p class="subcopy" style="margin:4px 0 0;">500 leads / month</p><div class="plan-cta" style="margin-top:12px;"></div></div>
+        <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.16 / lead</p><p class="subcopy" style="margin:4px 0 0;">1,200 leads / month</p><div class="plan-cta" style="margin-top:12px;"></div></div>
+        <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299<span style="font-size:13px;font-weight:400">/mo</span></div><p style="margin:6px 0 0;font-size:12px;font-weight:800;color:var(--brand);">Only RM0.12 / lead</p><p class="subcopy" style="margin:4px 0 0;">2,500 leads / month</p><div class="plan-cta" style="margin-top:12px;"></div></div>
       </div>
+      <p style="margin:16px 0 2px;text-align:center;font-weight:800;color:var(--brand);font-size:17px;">More leads. More chances to close clients.</p>
+      <p style="margin:0 0 16px;text-align:center;font-size:16px;color:var(--muted);">One project can cover months of your plan.</p>
       <div class="action-stack">
         <button id="manage-billing" type="button">Manage billing / invoices</button>
         <button id="close-upgrade" type="button">Close</button>
@@ -414,18 +414,20 @@
         c.classList.toggle("current", t === myTier);
         const cta = c.querySelector(".plan-cta");
         if (!cta) return;
+        const tRank = TIER_RANK[t] ?? 0;
         if (t === myTier) cta.innerHTML = '<span style="color:var(--brand);font-weight:700">✓ Current plan</span>';
-        else if ((TIER_RANK[t] ?? 0) > myRank) cta.innerHTML = '<button class="primary" data-upgrade="' + t + '" style="width:100%">Upgrade</button>';
+        else if (tRank > myRank) cta.innerHTML = '<button class="primary" data-upgrade="' + t + '" style="width:100%">Upgrade</button>';
+        else if (myTier !== "none") cta.innerHTML = '<button data-downgrade="' + t + '" style="width:100%">Downgrade</button>';
         else cta.innerHTML = "";
       });
       $("upgrade-modal").classList.remove("hidden");
     });
     $("close-upgrade").addEventListener("click", () => $("upgrade-modal").classList.add("hidden"));
     $("upgrade-modal").addEventListener("click", async (e) => {
-      const btn = e.target.closest("[data-upgrade]");
+      const btn = e.target.closest("[data-upgrade],[data-downgrade]");
       if (!btn) return;
-      // 已订阅 → 走 Customer Portal 换套餐（避免重复订阅/双扣，proration 正确切换）
-      if (myTier !== "none") { $("manage-billing").click(); return; }
+      // 已订阅(升级或降级) → 走 Customer Portal 换套餐（避免重复订阅/双扣，proration 正确切换）
+      if (btn.dataset.downgrade || myTier !== "none") { $("manage-billing").click(); return; }
       btn.disabled = true; btn.textContent = "Redirecting…";
       const { data, error } = await client.functions.invoke("create-checkout", { body: { tier: btn.dataset.upgrade } });
       if (error || !data || !data.url) {
