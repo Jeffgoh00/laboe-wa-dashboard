@@ -7,7 +7,7 @@ const env = (n: string, d = "") => Deno.env.get(n) || d;
 const stripe = new Stripe(env("STRIPE_SECRET_KEY"), { httpClient: Stripe.createFetchHttpClient() });
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
-const TIER_CAP: Record<string, number | null> = { tier1: 800, tier2: 1500, tier3: 3000 };
+const TIER_CAP: Record<string, number | null> = { tier1: 500, tier2: 1200, tier3: 2500 };
 function tierForPrice(priceId: string): string {
   if (priceId === env("STRIPE_PRICE_BASIC")) return "tier1";
   if (priceId === env("STRIPE_PRICE_PRO")) return "tier2";
