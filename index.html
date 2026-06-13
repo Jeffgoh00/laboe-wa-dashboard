@@ -85,6 +85,7 @@
     .notice { margin-top:12px; padding:12px; border-radius:8px; background:#fff; border:1px solid rgba(100,116,139,.25); color:#334155; }
     .empty { padding:18px; color:#64748b; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; }
     .hidden { display:none !important; }
+    .link { color:#1d4ed8; cursor:pointer; text-decoration:underline; font-weight:600; }
     /* 固定视口：整页不滚，只 Daily Lists 内部滚 */
     .content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
     #home-view.shell { flex:1; min-height:0; }
@@ -127,15 +128,28 @@
 <body>
   <div id="login" class="login-shell hidden">
     <p class="eyebrow">Laboe WA Lead OS</p>
-    <h1>Sign in or sign up</h1>
-    <p class="subcopy">Log in, or create a new account — new accounts get 1 free collection to try.</p>
-    <form id="login-form">
-      <input id="email" type="email" placeholder="Email" autocomplete="email" required>
-      <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
-      <button class="primary" type="submit">Login</button>
-      <button id="signup-btn" type="button">Create account</button>
-      <p id="login-error" class="subcopy"></p>
-    </form>
+    <div id="login-view">
+      <h1>Sign in</h1>
+      <form id="login-form">
+        <input id="email" type="email" placeholder="Email" autocomplete="email" required>
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+        <button class="primary" type="submit">Login</button>
+        <p id="login-error" class="subcopy"></p>
+      </form>
+      <p class="subcopy" style="margin-top:14px;">New here? <a id="to-signup" class="link">Create an account →</a></p>
+    </div>
+    <div id="signup-view" class="hidden">
+      <h1>Create your account</h1>
+      <p class="subcopy">Get 1 free collection to try — no credit card needed.</p>
+      <form id="signup-form">
+        <input id="su-email" type="email" placeholder="Email" autocomplete="email" required>
+        <input id="su-phone" type="tel" placeholder="Phone (e.g. 60123456789)" autocomplete="tel" required>
+        <input id="su-password" type="password" placeholder="Choose a password" autocomplete="new-password" required>
+        <button class="primary" type="submit">Create account</button>
+        <p id="signup-error" class="subcopy"></p>
+      </form>
+      <p class="subcopy" style="margin-top:14px;"><a id="to-login" class="link">← Back to login</a></p>
+    </div>
   </div>
 
   <div id="app" class="app hidden">
@@ -345,14 +359,17 @@
       syncAutoRefresh();
     });
 
-    $("signup-btn").addEventListener("click", async () => {
-      $("login-error").textContent = "";
-      const email = $("email").value.trim();
-      const password = $("password").value;
-      if (!email || !password) { $("login-error").textContent = "Enter email and password to create an account."; return; }
-      const { data, error } = await client.auth.signUp({ email, password });
-      if (error) { $("login-error").textContent = error.message; return; }
-      if (!data.session) { $("login-error").textContent = "Account created — please log in."; return; }
+    $("to-signup").addEventListener("click", () => { $("login-view").classList.add("hidden"); $("signup-view").classList.remove("hidden"); });
+    $("to-login").addEventListener("click", () => { $("signup-view").classList.add("hidden"); $("login-view").classList.remove("hidden"); });
+    $("signup-form").addEventListener("submit", async (event) => {
+      event.preventDefault(); $("signup-error").textContent = "";
+      const email = $("su-email").value.trim();
+      const phone = $("su-phone").value.trim();
+      const password = $("su-password").value;
+      if (!email || !phone || !password) { $("signup-error").textContent = "Please fill in email, phone and password."; return; }
+      const { data, error } = await client.auth.signUp({ email, password, options: { data: { phone } } });
+      if (error) { $("signup-error").textContent = error.message; return; }
+      if (!data.session) { $("signup-error").textContent = "Account created — please log in."; return; }
       session = data.session;
       showApp();
       await loadAll();
