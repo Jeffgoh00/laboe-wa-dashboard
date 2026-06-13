@@ -93,9 +93,15 @@
     #home-lists { flex:1; min-height:0; overflow-y:auto; }
     .right-rail { max-height:100%; overflow-y:auto; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
-    .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 12px; }
+    .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
+    .identity-strip::before { content:"⚑ Set your name & company — required before you can collect"; width:100%; font-size:12px; font-weight:800; color:#a14b12; margin-bottom:2px; }
     .identity-strip label { display:grid; gap:4px; font-size:12px; color:#64748b; font-weight:800; text-transform:uppercase; }
     .identity-strip input { width:200px; }
+    .notice.error { background:#fff1f0; border-color:#fecaca; color:#b42318; font-weight:700; }
+    .notice.working { background:#f0f7ff; border-color:#bfdbfe; color:#1e3a8a; font-weight:600; }
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid #bfdbfe; border-top-color:#1d4ed8; border-radius:50%; animation:spin .8s linear infinite; vertical-align:-2px; margin-right:7px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #notice-upgrade { display:block; margin-top:8px; }
     /* 升级弹窗 */
     .modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; align-items:center; justify-content:center; z-index:50; }
     .modal { background:#fff; border-radius:12px; max-width:600px; width:92%; padding:24px; box-shadow:var(--shadow); }
@@ -418,29 +424,48 @@
       $("home-start-collection").disabled = false;
     }
 
+    function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+    function showNotice(msg, type) {
+      const el = $("collection-notice");
+      el.className = "notice" + (type ? " " + type : "");
+      el.innerHTML = (type === "working" ? '<span class="spinner"></span>' : "") + safe(msg);
+    }
+
+    function showSubscribeAlert(msg) {
+      const el = $("collection-notice");
+      el.className = "notice error";
+      el.innerHTML = "⚠️ " + safe(msg) + '<button id="notice-upgrade" class="primary" type="button">View plans & subscribe</button>';
+      const b = $("notice-upgrade");
+      if (b) b.addEventListener("click", () => $("plan-pill").click());
+    }
+
     async function requestCollectionRun() {
-      // 采集前强制必须填写并保存发信身份
+      // #4 采集前强制填写并保存发信身份
       if (!senderName || !companyName) {
-        $("collection-notice").textContent = "Please fill in and Save your name + company (top of page) before collecting.";
+        showNotice("Please fill in and Save your name + company above before collecting.", "error");
         if ($("sender-name")) $("sender-name").focus();
         return;
       }
-      // 多租户：portal 不再直接写 collection_runs（RLS 只允许商户读）。
-      // 只调 Edge Function —— 它会认出商户、建 search_request、dispatch worker。
-      const targetDate = $("date-end").value || currentDate || new Date().toISOString().slice(0, 10);
-      setCurrentDate(targetDate);
+      // #5 只能采集今天
+      const today = todayStr();
+      if (currentDate !== today) {
+        showNotice("Collection is only available for today (" + today + "). Set the date to today.", "error");
+        return;
+      }
       $("home-start-collection").disabled = true;
-      $("collection-notice").textContent = "Requesting collection for " + targetDate + "...";
-      const trigger = await triggerCollectionWorker(targetDate);
-      pendingRequest = trigger.ok;            // 防抖：保持按钮禁用，直到 worker 接管或兜底超时
+      showNotice("Collecting fresh leads… this takes about 5–10 minutes.", "working");
+      const trigger = await triggerCollectionWorker(today);
+      pendingRequest = trigger.ok;
       await loadAll();
       startAutoRefresh();
       if (trigger.ok) {
-        $("collection-notice").textContent = "Queued for " + targetDate + ". The background worker was triggered. New leads will appear here shortly.";
+        showNotice("Collecting fresh leads… about 5–10 minutes. New leads appear here automatically.", "working");
         setTimeout(() => { pendingRequest = false; renderCollection(); }, 120000);
       } else {
-        $("collection-notice").textContent = "Could not start collection for " + targetDate + ": " + trigger.message;
         $("home-start-collection").disabled = false;
+        if (/trial|subscribe|cap|plan/i.test(trigger.message || "")) showSubscribeAlert(trigger.message);
+        else showNotice("Could not start collection: " + trigger.message, "error");
       }
     }
 
@@ -618,8 +643,13 @@
       // worker 一旦接管（写出真实 run 状态），清掉防抖 pending
       const m = String(collectionRun?.mode || "").toLowerCase();
       if (m.includes("processing") || m.includes("completed") || m.includes("short") || m.includes("failed")) pendingRequest = false;
-      $("home-start-collection").disabled = progress.working || pendingRequest;
-      if (!progress.working && !pendingRequest) $("collection-notice").textContent = progress.notice;
+      const isToday = currentDate === todayStr();
+      $("home-start-collection").disabled = progress.working || pendingRequest || !isToday;
+      if (!progress.working && !pendingRequest) {
+        const n = $("collection-notice");
+        n.className = "notice";
+        n.textContent = isToday ? progress.notice : ("Viewing " + currentDate + " (history). Switch the date to today to collect.");
+      }
     }
 
     function collectionProgress(run, missing) {
