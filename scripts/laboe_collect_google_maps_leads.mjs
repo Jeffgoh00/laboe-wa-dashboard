@@ -167,6 +167,9 @@ const sourceLanes = [
   ["flower delivery", "Bangsar"],
   ["florist gift shop", "Seremban"],
   ["florist gift shop", "Kuantan"],
+  // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
+  ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
 ];
 
 const targetQuotas = new Map([
