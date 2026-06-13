@@ -121,12 +121,13 @@
 <body>
   <div id="login" class="login-shell hidden">
     <p class="eyebrow">Laboe WA Lead OS</p>
-    <h1>Sign in</h1>
-    <p class="subcopy">Use the Supabase Auth account you created, for example info@laboe.studio.</p>
+    <h1>Sign in or sign up</h1>
+    <p class="subcopy">Log in, or create a new account — new accounts get 1 free collection to try.</p>
     <form id="login-form">
       <input id="email" type="email" placeholder="Email" autocomplete="email" required>
       <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
       <button class="primary" type="submit">Login</button>
+      <button id="signup-btn" type="button">Create account</button>
       <p id="login-error" class="subcopy"></p>
     </form>
   </div>
@@ -245,11 +246,10 @@
       <h2>Plans</h2>
       <p class="subcopy" id="upgrade-current"></p>
       <div class="plans">
-        <div class="plan-card" data-plan="tier1"><h3>Basic</h3><div class="price">RM99</div><p class="subcopy">800 leads / month</p></div>
-        <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199</div><p class="subcopy">1,500 leads / month</p></div>
-        <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299</div><p class="subcopy">3,000 leads / month</p></div>
+        <div class="plan-card" data-plan="tier1"><h3>Basic</h3><div class="price">RM99<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy">800 leads / month</p><div class="plan-cta" style="margin-top:10px;"></div></div>
+        <div class="plan-card" data-plan="tier2"><h3>Pro</h3><div class="price">RM199<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy">1,500 leads / month</p><div class="plan-cta" style="margin-top:10px;"></div></div>
+        <div class="plan-card" data-plan="tier3"><h3>Max</h3><div class="price">RM299<span style="font-size:13px;font-weight:400">/mo</span></div><p class="subcopy">3,000 leads / month</p><div class="plan-cta" style="margin-top:10px;"></div></div>
       </div>
-      <p class="subcopy">To upgrade, contact Laboe Studio — your plan is updated within 24 hours.</p>
       <div class="action-stack"><button id="close-upgrade" type="button">Close</button></div>
     </div>
   </div>
@@ -339,6 +339,21 @@
       syncAutoRefresh();
     });
 
+    $("signup-btn").addEventListener("click", async () => {
+      $("login-error").textContent = "";
+      const email = $("email").value.trim();
+      const password = $("password").value;
+      if (!email || !password) { $("login-error").textContent = "Enter email and password to create an account."; return; }
+      const { data, error } = await client.auth.signUp({ email, password });
+      if (error) { $("login-error").textContent = error.message; return; }
+      if (!data.session) { $("login-error").textContent = "Account created — please log in."; return; }
+      session = data.session;
+      showApp();
+      await loadAll();
+      subscribeRealtime();
+      syncAutoRefresh();
+    });
+
     $("logout").addEventListener("click", async () => {
       await client.auth.signOut();
       location.reload();
@@ -357,12 +372,28 @@
       $("identity-saved").textContent = error ? ("Save failed: " + error.message) : "Saved ✓";
       if (!error) renderLeads();
     });
+    const TIER_RANK = { none: 0, tier1: 1, tier2: 2, tier3: 3, unlimited: 4, owner: 5 };
     $("plan-pill").addEventListener("click", () => {
-      $("upgrade-current").textContent = "Your current plan: " + (TIER_NAMES[myTier] || myTier) + (myCap == null ? " (Unlimited)" : " · " + myCap + " leads/month");
-      document.querySelectorAll("[data-plan]").forEach((c) => c.classList.toggle("current", c.dataset.plan === myTier));
+      const myRank = TIER_RANK[myTier] ?? 0;
+      $("upgrade-current").textContent = "Your current plan: " + (TIER_NAMES[myTier] || myTier);
+      document.querySelectorAll("[data-plan]").forEach((c) => {
+        const t = c.dataset.plan;
+        c.classList.toggle("current", t === myTier);
+        const cta = c.querySelector(".plan-cta");
+        if (!cta) return;
+        if (t === myTier) cta.innerHTML = '<span style="color:var(--brand);font-weight:700">✓ Current plan</span>';
+        else if ((TIER_RANK[t] ?? 0) > myRank) cta.innerHTML = '<button class="primary" data-upgrade="' + t + '" style="width:100%">Upgrade</button>';
+        else cta.innerHTML = "";
+      });
       $("upgrade-modal").classList.remove("hidden");
     });
     $("close-upgrade").addEventListener("click", () => $("upgrade-modal").classList.add("hidden"));
+    $("upgrade-modal").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-upgrade]");
+      if (!btn) return;
+      // Stripe 接好前的占位：先提示联系。Phase C 后这里改成跳 Stripe Checkout。
+      $("upgrade-current").textContent = "To upgrade to " + (TIER_NAMES[btn.dataset.upgrade] || btn.dataset.upgrade) + ", online checkout is coming soon — contact Laboe Studio to upgrade now.";
+    });
     $("back-home").addEventListener("click", () => {
       activeListBatchId = "";
       $("lead-filter").value = "";
@@ -458,15 +489,16 @@
       companyName = s && s.company_name ? s.company_name : "";
       if ($("sender-name")) $("sender-name").value = senderName;
       if ($("sender-company")) $("sender-company").value = companyName;
-      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used").eq("merchant_id", myMerchantId).maybeSingle();
-      myTier = mer && mer.tier ? mer.tier : "none";
-      myCap = mer ? mer.monthly_lead_cap : null;
-      myTrialUsed = mer ? !!mer.trial_used : false;
     }
 
     async function renderPlan() {
       const el = $("plan-pill");
       if (!el || !myMerchantId) return;
+      // 每次都重新取 plan，保证 global-view 改 tier 后能同步
+      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used").eq("merchant_id", myMerchantId).maybeSingle();
+      myTier = mer && mer.tier ? mer.tier : "none";
+      myCap = mer ? mer.monthly_lead_cap : null;
+      myTrialUsed = mer ? !!mer.trial_used : false;
       const now = new Date();
       const ms = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
       const { count } = await client.from("laboe_leads").select("id", { count: "exact", head: true }).eq("merchant_id", myMerchantId).gte("created_at", ms);
