@@ -308,6 +308,7 @@
     let senderName = "";
     let companyName = "";
     let myTier = "none";
+    let mySubStatus = null;
     let myCap = null;
     let myTrialUsed = false;
     const TIER_NAMES = { none: "No plan", tier1: "Basic", tier2: "Pro", tier3: "Max", unlimited: "Unlimited", owner: "Owner" };
@@ -431,14 +432,18 @@
     $("upgrade-modal").addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-upgrade],[data-downgrade]");
       if (!btn) return;
-      // 已订阅(升级或降级) → 走 Customer Portal 换套餐（避免重复订阅/双扣，proration 正确切换）
-      if (btn.dataset.downgrade || myTier !== "none") { $("manage-billing").click(); return; }
+      const target = btn.dataset.upgrade || btn.dataset.downgrade;
+      const label = btn.dataset.downgrade ? "Downgrade" : "Upgrade";
+      // 有真实订阅 → 走 Customer Portal 换套餐(proration/排程由 Stripe 处理)
+      // 无真实订阅(none 或被手动给档但没买过) → 走 create-checkout 订这个档
+      const hasRealSub = ["active", "trialing", "past_due"].includes(mySubStatus);
+      if (hasRealSub) { $("manage-billing").click(); return; }
       btn.disabled = true; btn.textContent = "Redirecting…";
-      const { data, error } = await client.functions.invoke("create-checkout", { body: { tier: btn.dataset.upgrade } });
+      const { data, error } = await client.functions.invoke("create-checkout", { body: { tier: target } });
       if (error || !data || !data.url) {
-        if (data && data.manage) { btn.disabled = false; btn.textContent = "Upgrade"; $("manage-billing").click(); return; }
+        if (data && data.manage) { btn.disabled = false; btn.textContent = label; $("manage-billing").click(); return; }
         $("upgrade-current").textContent = "Could not start checkout: " + ((error && error.message) || (data && data.error) || "unknown error");
-        btn.disabled = false; btn.textContent = "Upgrade"; return;
+        btn.disabled = false; btn.textContent = label; return;
       }
       window.location.href = data.url;
     });
@@ -571,8 +576,9 @@
       const el = $("plan-pill");
       if (!el || !myMerchantId) return;
       // 每次都重新取 plan，保证 global-view 改 tier 后能同步
-      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used").eq("merchant_id", myMerchantId).maybeSingle();
+      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used,subscription_status").eq("merchant_id", myMerchantId).maybeSingle();
       myTier = mer && mer.tier ? mer.tier : "none";
+      mySubStatus = mer ? mer.subscription_status : null;
       myCap = mer ? mer.monthly_lead_cap : null;
       myTrialUsed = mer ? !!mer.trial_used : false;
       const now = new Date();

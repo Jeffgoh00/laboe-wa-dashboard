@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       `${supaUrl}/rest/v1/laboe_merchant_users?select=merchant_id,laboe_merchants(stripe_customer_id)&user_id=eq.${userId}`,
       { headers: svc })).json();
     const cust = Array.isArray(rows) ? rows[0]?.laboe_merchants?.stripe_customer_id : null;
-    if (!cust) return json({ error: "No billing account yet. Subscribe to a plan first." }, 400);
+    if (!cust) return json({ ok: false, error: "No billing account yet. Subscribe to a plan first.", noCustomer: true }, 200);
 
     const session = await stripe.billingPortal.sessions.create({ customer: cust, return_url: portalUrl });
     return json({ ok: true, url: session.url });
