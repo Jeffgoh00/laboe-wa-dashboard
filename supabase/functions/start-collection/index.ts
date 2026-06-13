@@ -41,7 +41,7 @@ Deno.serve(async (request) => {
     // 1) 认出当前商户
     const userId = userIdFromJwt(request.headers.get("Authorization") || "");
     const lookup = await fetch(
-      `${supabaseUrl}/rest/v1/laboe_merchant_users?select=merchant_id,laboe_merchants(status,target_leads)&user_id=eq.${userId}`,
+      `${supabaseUrl}/rest/v1/laboe_merchant_users?select=merchant_id,laboe_merchants(status,target_leads,monthly_lead_cap)&user_id=eq.${userId}`,
       { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
     );
     const rows = await lookup.json();
@@ -51,6 +51,21 @@ Deno.serve(async (request) => {
     const merchant = link.laboe_merchants || {};
     if (merchant.status && merchant.status !== "active") {
       return json({ ok: false, error: `Merchant is ${merchant.status}.` }, 403);
+    }
+
+    // 月度额度上限：OWNER 或 cap=null 无限；否则数本月已采集 leads
+    const cap = merchant.monthly_lead_cap;
+    if (merchantId !== "OWNER" && cap != null) {
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const usedRes = await fetch(
+        `${supabaseUrl}/rest/v1/laboe_leads?select=id&merchant_id=eq.${merchantId}&created_at=gte.${monthStart}`,
+        { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Prefer: "count=exact" } },
+      );
+      const used = Number((usedRes.headers.get("content-range") || "*/0").split("/")[1] || 0);
+      if (used >= cap) {
+        return json({ ok: false, error: `Monthly cap reached (${used}/${cap} leads). Upgrade your tier for more.` }, 403);
+      }
     }
 
     // 2) 参数（count 用商户预设，不让前端选）
