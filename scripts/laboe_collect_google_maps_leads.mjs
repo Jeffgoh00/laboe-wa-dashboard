@@ -170,6 +170,9 @@ const sourceLanes = [
   // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
     .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
+  // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 新加坡 + 加厚 ——
+  ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar", "Orchard Singapore", "Tampines Singapore", "Jurong Singapore", "Woodlands Singapore", "Bedok Singapore", "Punggol Singapore", "Ang Mo Kio Singapore", "Toa Payoh Singapore", "Bukit Timah Singapore", "Clementi Singapore", "Serangoon Singapore", "Hougang Singapore", "Yishun Singapore", "Bishan Singapore", "Pasir Ris Singapore", "Sengkang Singapore", "Bukit Batok Singapore"]
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
 ];
 
 const targetQuotas = new Map([
@@ -221,6 +224,17 @@ const columns = [
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// 每次只跑随机抽样的 N 条 lane，运行时间封顶、多次采集轮换覆盖全部城市。
+function sampleLanes(lanes, n) {
+  if (!n || n >= lanes.length) return lanes;
+  const arr = [...lanes];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, n);
 }
 
 async function curl(url) {
@@ -506,7 +520,7 @@ function parsePayload(payload, query, city) {
         website_or_social_url: website,
         address,
         city,
-        country: "Malaysia",
+        country: normalizedPhone.startsWith("65") ? "Singapore" : "Malaysia",
         phone: normalizedPhone,
         contact_channel: "Mobile / WhatsApp likely",
         contact_details: phone.international || phone.display || normalizedPhone,
@@ -711,7 +725,9 @@ async function main() {
   const laneStats = [];
   let suppressCount = 0;
 
-  for (const [query, city] of sourceLanes) {
+  const lanesPerRun = Number(process.env.LANES_PER_RUN || "220");
+  const sampledLanes = sampleLanes(sourceLanes, lanesPerRun);
+  for (const [query, city] of sampledLanes) {
     let parsed = [];
     try {
       parsed = await fetchMapsRows(query, city);
