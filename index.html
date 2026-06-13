@@ -437,9 +437,9 @@
       await loadIdentity();
       normalizeDateRange();
       const [runRes, batchRes, leadRes] = await Promise.all([
-        client.from("laboe_collection_runs").select("*").eq("run_date", currentDate).maybeSingle(),
-        client.from("laboe_send_batches").select("*").gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile"),
-        client.from("laboe_leads").select("*").gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
+        client.from("laboe_collection_runs").select("*").eq("merchant_id", myMerchantId).eq("run_date", currentDate).maybeSingle(),
+        client.from("laboe_send_batches").select("*").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile"),
+        client.from("laboe_leads").select("*").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
       ]);
       if (runRes.error) return showLoadError(runRes.error);
       if (batchRes.error) return showLoadError(batchRes.error);
