@@ -104,6 +104,20 @@
     #home-lists { flex:1; min-height:0; overflow-y:auto; }
     .right-rail { max-height:100%; overflow-y:auto; }
     #result-view { flex:1; min-height:0; overflow-y:auto; }
+    #guide-view { flex:1; min-height:0; overflow-y:auto; }
+    .guide-block { margin-bottom:18px; }
+    .guide-block h3 { font-size:15px; color:var(--brand); margin:0 0 8px; }
+    .guide-block ul, .guide-block ol { margin:0; padding-left:20px; }
+    .guide-block li { margin-bottom:10px; font-size:14px; line-height:1.55; color:#334155; }
+    .guide-block > p { font-size:14px; line-height:1.55; color:#334155; margin:0; }
+    .guide-msg { border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; background:#f8fafc; }
+    .guide-msg-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+    .guide-msg-head b { font-size:13px; }
+    .guide-copy { font-size:12px; padding:5px 10px; min-height:30px; }
+    .guide-msg p { white-space:pre-wrap; margin:0; font-size:13px; line-height:1.5; color:#334155; }
+    .guide-cta { border:1px solid var(--brand); border-radius:10px; padding:14px; background:var(--green-soft); }
+    .guide-cta p { font-size:13px; line-height:1.55; color:#334155; margin:0 0 10px; }
+    .guide-cta-btn { display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
     .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
     .identity-strip::before { content:"⚑ Set your name & company — required before you can collect"; width:100%; font-size:12px; font-weight:800; color:#a14b12; margin-bottom:2px; }
@@ -197,6 +211,7 @@
   <div id="app" class="app hidden">
     <aside class="sidebar">
       <div class="brand">Laboe<span>WA</span></div>
+      <button class="nav-item" data-view="guide">Guide</button>
       <button class="nav-item active" data-view="home">Home</button>
       <button class="nav-item" data-view="search">Search</button>
       <button class="nav-item" data-view="result">Result</button>
@@ -224,6 +239,73 @@
         <div class="date-range">
           <label>From <input id="date-start" class="date-control" type="date"></label>
           <label>To <input id="date-end" class="date-control" type="date"></label>
+        </div>
+      </section>
+
+      <section id="guide-view" class="view panel hidden">
+        <div class="panel-head">
+          <div>
+            <h2>📈 How to Close Sales · 成交指南</h2>
+            <p>From mass-sending to closing the deal — the full playbook. 从群发到谈成的完整步骤。</p>
+          </div>
+        </div>
+
+        <div class="guide-block">
+          <h3>1. Setup · 准备</h3>
+          <ul>
+            <li><b>EN:</b> Use a separate “burner” number for mass-sending — not your main number. Replace it every 7–14 days.<br><b>中:</b> 用一个「消耗号」专门群发（不是你主号），每 7–14 天换一个。</li>
+            <li><b>EN:</b> One WhatsApp number can send <b>max ~50 messages/day</b>. Spread them out in small batches.<br><b>中:</b> 一个 WhatsApp 号一天最多发 <b>~50 个</b>，尽量分批发。</li>
+            <li><b>EN:</b> Keep your <b>main number</b> for replies &amp; sending your portfolio.<br><b>中:</b> 主号留着回复客户、发作品集。</li>
+          </ul>
+        </div>
+
+        <div class="guide-block">
+          <h3>2. The Flow · 流程</h3>
+          <ol>
+            <li><b>EN:</b> From the system, send the first opener.<br><b>中:</b> 从系统点击发送第一封开场白。</li>
+            <li><b>EN:</b> They reply → switch to your main number, send the <b>case-study message (Template A) WITH your portfolio</b>.<br><b>中:</b> 有人回复 → 换主号，把「案例话术（模板 A）」配上作品集一起发。</li>
+            <li><b>EN:</b> Day 3, still no reply → send <b>Follow-up (Template B)</b>.<br><b>中:</b> 第 3 天还没回复 → 发「跟进信息（模板 B）」。</li>
+            <li><b>EN:</b> Sent portfolio but no reply → send one more follow-up: ask if they have upcoming <b>events</b> or <b>design-upgrade</b> needs.<br><b>中:</b> 发了作品集还没回复 → 再跟一条：问客户近期有没有做活动、或需要升级设计。</li>
+            <li><b>EN:</b> Still no reply → stop. <b>Anyone who replies can usually be closed.</b><br><b>中:</b> 还是没回复 → 就不发了。<b>有回复的基本都能谈。</b></li>
+          </ol>
+        </div>
+
+        <div class="guide-block">
+          <h3>3. Track every send · 记录发送状态</h3>
+          <ul>
+            <li><b>EN:</b> After you send, mark the lead <b>Sent</b>. When they reply, mark it <b>Replied</b>.<br><b>中:</b> 发送后点 <b>Sent</b>；有回复点 <b>Replied</b>。</li>
+            <li><b>EN:</b> This tracks what’s sent, not sent &amp; replied — clean stats, and you never double-send.<br><b>中:</b> 这样能记录哪些发了、哪些没发、哪些回复了，数据一目了然，也不会重复发。</li>
+          </ul>
+        </div>
+
+        <div class="guide-block">
+          <h3>4. If your portfolio doesn’t match their industry · 作品集没有客户行业时</h3>
+          <p><b>EN:</b> Ask the client for a reference style, or offer to try one design so they can see what you can do.<br><b>中:</b> 让客户提供参考风格，或主动试做一张，展示我们的能力。</p>
+        </div>
+
+        <div class="guide-block">
+          <h3>Message templates · 话术模板</h3>
+          <div class="guide-msg">
+            <div class="guide-msg-head"><b>A · Case study — send WITH portfolio when they reply</b><button class="guide-copy" type="button" data-copy="msgA">Copy</button></div>
+            <p id="msgA">Here’s a case study to share, perhaps they don’t feature your industry or preferred style.
+
+No worries; if you share some reference styles, we can offer a free trial for one post design so you can see our design skills.
+
+We can start with smaller request 🤝</p>
+          </div>
+          <div class="guide-msg">
+            <div class="guide-msg-head"><b>B · Follow-up — Day 3, no reply</b><button class="guide-copy" type="button" data-copy="msgB">Copy</button></div>
+            <p id="msgB">Hi, just following up here.
+
+Not sure if my earlier message reached the right person. If you are not looking for design or marketing support right now, no worries.
+
+I can also just send a few relevant sample works for your reference, and you can keep us in mind for future visuals, social media content, packaging, menu, campaign or website support.</p>
+          </div>
+        </div>
+
+        <div class="guide-cta">
+          <p><b>EN:</b> One number sends ~50/day max — push too hard and the daily limit keeps dropping. Need more sending numbers? Reach out.<br><b>中:</b> 一个号一天最多 ~50 个，发太猛每天会越来越少。需要更多号？找我们。</p>
+          <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
         </div>
       </section>
 
@@ -546,11 +628,11 @@
     });
 
     function showView(viewName) {
-      if (["home", "search", "result"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
+      if (["home", "search", "result", "guide"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
       document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item.dataset.view === viewName));
       document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
       $(viewName + "-view").classList.remove("hidden");
-      const showChrome = viewName !== "result";
+      const showChrome = !["result", "guide"].includes(viewName);
       const pt = $("page-title"); if (pt) pt.classList.toggle("hidden", !showChrome);
       document.querySelectorAll(".identity-strip, .date-strip").forEach((el) => el.classList.toggle("hidden", !showChrome));
       if (viewName === "result") loadWins();
@@ -816,6 +898,11 @@
       const b = e.target.closest("[data-del]"); if (b) deleteWin(b.dataset.del);
     });
     if ($("lightbox")) $("lightbox").addEventListener("click", function () { $("lightbox").classList.add("hidden"); $("lightbox-img").src = ""; });
+    if ($("guide-view")) $("guide-view").addEventListener("click", function (e) {
+      const b = e.target.closest(".guide-copy"); if (!b) return;
+      const el = $(b.dataset.copy); if (!el || !navigator.clipboard) return;
+      navigator.clipboard.writeText(el.textContent).then(function () { b.textContent = "Copied ✓"; setTimeout(function () { b.textContent = "Copy"; }, 1500); });
+    });
 
     function showLoadError(error) {
       $("home-lists").innerHTML = '<p class="empty">Cannot load Supabase data: ' + safe(error.message) + '. Run setup.sql first, then reload the page.</p>';
