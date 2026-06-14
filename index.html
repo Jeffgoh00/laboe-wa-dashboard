@@ -11,7 +11,9 @@
     body { margin:0; font-family:Inter, Arial, sans-serif; background:var(--bg); color:var(--ink); }
     button, a, label, input, select, textarea, .nav-item, .step-card, .win-card, .plan-card, .pill { touch-action: manipulation; }
     button, input, select, textarea { font:inherit; }
-    button, .button { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 12px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; min-height:38px; }
+    button, .button { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 12px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; min-height:38px; transition:transform .12s ease, box-shadow .15s ease, background-color .15s ease, filter .15s ease, border-color .15s ease; }
+    button:active, .button:active { transform:scale(.97); }
+    button.primary:hover, .button.primary:hover { filter:brightness(1.07); box-shadow:0 4px 14px rgba(16,37,32,.22); }
     button.primary, .button.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
     button:disabled { opacity:.55; cursor:not-allowed; }
     input, select { width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 12px; min-height:40px; }
@@ -20,7 +22,7 @@
     .sidebar { position:sticky; top:0; height:100vh; padding:20px 14px; background:#102520; color:#d9fff7; }
     .brand { font-size:20px; font-weight:800; margin:0 0 24px 8px; }
     .brand span { color:#83f4df; }
-    .nav-item { display:block; width:100%; text-align:left; color:#d4eee9; background:transparent; border:0; border-radius:8px; padding:10px 12px; margin:0 0 4px; text-decoration:none; }
+    .nav-item { display:block; width:100%; text-align:left; color:#d4eee9; background:transparent; border:0; border-radius:8px; padding:10px 12px; margin:0 0 4px; text-decoration:none; transition:background-color .15s ease, color .15s ease; }
     .sidebar-bar { display:flex; align-items:center; justify-content:space-between; }
     .nav-toggle, .nav-close { display:none; }
     .nav-list { display:flex; flex-direction:column; }
@@ -100,6 +102,10 @@
     .link { color:#1d4ed8; cursor:pointer; text-decoration:underline; font-weight:600; }
     .fade-in { animation: fadeIn .28s ease; }
     @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes modalIn { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+    .modal-backdrop:not(.hidden) .modal { animation: modalIn .22s ease; }
+    .win-card { transition:box-shadow .15s ease, transform .15s ease; }
+    .win-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.08); transform:translateY(-2px); }
     /* 固定视口：整页不滚，只 Daily Lists 内部滚 */
     .content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
     #home-view.shell { flex:1; min-height:0; }
@@ -149,7 +155,7 @@
     @keyframes spin { to { transform:rotate(360deg); } }
     #notice-upgrade { display:block; margin-top:8px; }
     /* 升级弹窗 */
-    .modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; overflow-y:auto; padding:24px 16px; box-sizing:border-box; z-index:50; }
+    .modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,.5); display:flex; overflow-y:auto; padding:24px 16px; box-sizing:border-box; z-index:400; }
     .modal { background:#fff; border-radius:12px; max-width:600px; width:92%; padding:24px; box-shadow:var(--shadow); margin:auto; position:relative; }
     .modal-x { display:block; margin:0 0 6px auto; width:32px; height:32px; min-height:32px; padding:0; border:0; background:transparent; font-size:18px; line-height:1; color:#64748b; cursor:pointer; border-radius:8px; }
     .modal-x:hover { background:#f1f5f9; color:#0f172a; }
@@ -664,7 +670,9 @@ I can also just send a few relevant sample works for your reference, and you can
       if (["home", "search", "result", "guide"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
       document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item.dataset.view === viewName));
       document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
-      $(viewName + "-view").classList.remove("hidden");
+      const _vEl = $(viewName + "-view");
+      _vEl.classList.remove("hidden");
+      _vEl.classList.remove("fade-in"); void _vEl.offsetWidth; _vEl.classList.add("fade-in");
       const showChrome = !["result", "guide"].includes(viewName);
       const pt = $("page-title"); if (pt) pt.classList.toggle("hidden", !showChrome);
       document.querySelectorAll(".identity-strip, .date-strip").forEach((el) => el.classList.toggle("hidden", !showChrome));
