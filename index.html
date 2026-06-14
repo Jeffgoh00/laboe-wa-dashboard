@@ -96,6 +96,7 @@
     #home-view .main-column > .panel { flex:1; min-height:0; display:flex; flex-direction:column; }
     #home-lists { flex:1; min-height:0; overflow-y:auto; }
     .right-rail { max-height:100%; overflow-y:auto; }
+    #result-view { flex:1; min-height:0; overflow-y:auto; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
     .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
     .identity-strip::before { content:"⚑ Set your name & company — required before you can collect"; width:100%; font-size:12px; font-weight:800; color:#a14b12; margin-bottom:2px; }
@@ -114,7 +115,7 @@
     .plan-cta { margin-top:auto; padding-top:14px; }
     .plan-cta button { width:100%; min-height:42px; }
     .plan-current { min-height:42px; display:flex; align-items:center; justify-content:center; color:var(--brand); font-weight:700; }
-    .wins-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px; margin-top:14px; max-height:calc(100vh - 230px); overflow-y:auto; padding:2px 4px 2px 2px; }
+    .wins-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px; margin-top:14px; }
     .win-card { border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
     .win-card .win-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
     .win-card .win-amount { font-size:22px; font-weight:800; color:var(--brand); }
@@ -374,6 +375,7 @@
       }
       showApp();
       await loadAll();
+      try { const v = localStorage.getItem("laboeView"); if (v && v !== "home" && $(v + "-view")) showView(v); } catch (e) {}
       subscribeRealtime();
       syncAutoRefresh();
     }
@@ -516,6 +518,7 @@
     });
 
     function showView(viewName) {
+      if (["home", "search", "result"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
       document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item.dataset.view === viewName));
       document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
       $(viewName + "-view").classList.remove("hidden");
