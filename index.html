@@ -20,6 +20,9 @@
     .brand { font-size:20px; font-weight:800; margin:0 0 24px 8px; }
     .brand span { color:#83f4df; }
     .nav-item { display:block; width:100%; text-align:left; color:#d4eee9; background:transparent; border:0; border-radius:8px; padding:10px 12px; margin:0 0 4px; text-decoration:none; }
+    .sidebar-bar { display:flex; align-items:center; justify-content:space-between; }
+    .nav-toggle, .nav-close { display:none; }
+    .nav-list { display:flex; flex-direction:column; }
     .nav-item.active, .nav-item:hover { background:#1a3f37; color:#fff; }
     .content { padding:24px; max-width:1420px; width:100%; }
     .page-header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:18px; }
@@ -127,6 +130,8 @@
     .step-body ul { margin:6px 0 0; padding-left:18px; }
     .step-body li { font-size:13px; line-height:1.5; color:#475569; margin-bottom:4px; }
     .must-read { background:#ef4444; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
+    .guide-steps { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; margin-bottom:18px; align-items:stretch; }
+    .guide-steps .step-card { margin-bottom:0; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
     .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
     .identity-strip::before { content:"⚑ Set your name & company — required before you can collect"; width:100%; font-size:12px; font-weight:800; color:#a14b12; margin-bottom:2px; }
@@ -175,9 +180,15 @@
     .plan-card .price { font-size:27px; font-weight:800; margin:6px 0 2px; color:var(--brand); }
     @media (max-width: 1060px) {
       .app { grid-template-columns:1fr; }
-      .sidebar { position:static; height:auto; display:flex; gap:6px; overflow:auto; }
-      .brand { margin:8px 12px 8px 4px; white-space:nowrap; }
-      .nav-item { width:auto; white-space:nowrap; }
+      .sidebar { position:sticky; top:0; height:auto; display:block; padding:10px 14px; z-index:100; }
+      .brand { margin:0; white-space:nowrap; }
+      .nav-toggle { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; min-height:42px; font-size:22px; background:transparent; color:#d9fff7; border:0; }
+      .nav-list { display:none; }
+      .sidebar.open { position:fixed; inset:0; height:100vh; overflow-y:auto; padding:16px 18px; z-index:300; }
+      .sidebar.open .nav-toggle { display:none; }
+      .sidebar.open .nav-close { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; min-height:42px; font-size:22px; background:transparent; color:#d9fff7; border:0; }
+      .sidebar.open .nav-list { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
+      .sidebar.open .nav-item { width:100%; font-size:18px; padding:16px 14px; }
       .shell { grid-template-columns:1fr; }
       .right-rail { position:static; }
       .metric-grid { grid-template-columns:repeat(2,1fr); }
@@ -218,12 +229,18 @@
   </div>
 
   <div id="app" class="app hidden">
-    <aside class="sidebar">
-      <div class="brand">Laboe<span>WA</span></div>
-      <button class="nav-item" data-view="guide">Guide <span class="must-read">Must Read</span></button>
-      <button class="nav-item active" data-view="home">Home</button>
-      <button class="nav-item" data-view="search">Search</button>
-      <button class="nav-item" data-view="result">Result</button>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-bar">
+        <div class="brand">Laboe<span>WA</span></div>
+        <button id="nav-toggle" class="nav-toggle" type="button" aria-label="Open menu">☰</button>
+        <button id="nav-close" class="nav-close" type="button" aria-label="Close menu">✕</button>
+      </div>
+      <nav class="nav-list">
+        <button class="nav-item" data-view="guide">Guide <span class="must-read">Must Read</span></button>
+        <button class="nav-item active" data-view="home">Home</button>
+        <button class="nav-item" data-view="search">Search</button>
+        <button class="nav-item" data-view="result">Result</button>
+      </nav>
     </aside>
     <main class="content">
       <header class="page-header">
@@ -259,6 +276,11 @@
           </div>
         </div>
 
+        <div class="guide-cta">
+          <p>One number sends ~50/day max — push too hard and the daily limit keeps dropping. Need more sending numbers? Reach out.</p>
+          <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
+        </div>
+
         <div class="step-card setup">
           <div class="step-icon">⚙️</div>
           <div class="step-body">
@@ -271,21 +293,16 @@
           </div>
         </div>
 
-        <div class="step-card"><div class="step-num">1</div><div class="step-body"><b>Send the first opener</b><p>From the system, send your first message to the lead.</p></div></div>
-
-        <div class="step-card"><div class="step-num">2</div><div class="step-body"><b>They reply → send case study + portfolio</b><p>Switch to your main number. Send <b>Template A</b> with your portfolio. Send the portfolio as a <b>PDF under 5MB</b> — don’t spam separate images.</p></div></div>
-
-        <div class="step-card"><div class="step-num">3</div><div class="step-body"><b>Day 3, no reply → follow up</b><p>Send <b>Template B</b> to gently follow up.</p></div></div>
-
-        <div class="step-card"><div class="step-num">4</div><div class="step-body"><b>Portfolio sent, no reply → one more nudge</b><p>Ask if they have upcoming <b>events</b> or <b>design-upgrade</b> needs.</p></div></div>
-
-        <div class="step-card"><div class="step-num">5</div><div class="step-body"><b>Quote sent, no reply → offer a discount</b><p>Send a limited offer, e.g. <b>-35% new-client campaign</b>, to create urgency.</p></div></div>
-
-        <div class="step-card"><div class="step-num">6</div><div class="step-body"><b>Still no reply → move on</b><p>Stop here. Anyone who replies can usually be closed.</p></div></div>
-
-        <div class="step-card"><div class="step-num">7</div><div class="step-body"><b>Portfolio doesn’t match their industry?</b><p>Ask the client for a reference style, or offer to try <b>one design</b> so they can see what you can do.</p></div></div>
-
-        <div class="step-card"><div class="step-num">8</div><div class="step-body"><b>Track every send</b><p>Mark each lead <b>Sent</b> after sending and <b>Replied</b> when they reply — clean stats, and you never double-send.</p></div></div>
+        <div class="guide-steps">
+          <div class="step-card"><div class="step-num">1</div><div class="step-body"><b>Send the first opener</b><p>From the system, send your first message to the lead.</p></div></div>
+          <div class="step-card"><div class="step-num">2</div><div class="step-body"><b>They reply → send case study + portfolio</b><p>Switch to your main number. Send <b>Template A</b> with your portfolio. Send the portfolio as a <b>PDF under 5MB</b> — don’t spam separate images.</p></div></div>
+          <div class="step-card"><div class="step-num">3</div><div class="step-body"><b>Day 3, no reply → follow up</b><p>Send <b>Template B</b> to gently follow up.</p></div></div>
+          <div class="step-card"><div class="step-num">4</div><div class="step-body"><b>Portfolio sent, no reply → one more nudge</b><p>Ask if they have upcoming <b>events</b> or <b>design-upgrade</b> needs.</p></div></div>
+          <div class="step-card"><div class="step-num">5</div><div class="step-body"><b>Quote sent, no reply → offer a discount</b><p>Send a limited offer, e.g. <b>-35% new-client campaign</b>, to create urgency.</p></div></div>
+          <div class="step-card"><div class="step-num">6</div><div class="step-body"><b>Still no reply → move on</b><p>Stop here. Anyone who replies can usually be closed.</p></div></div>
+          <div class="step-card"><div class="step-num">7</div><div class="step-body"><b>Portfolio doesn’t match their industry?</b><p>Ask the client for a reference style, or offer to try <b>one design</b> so they can see what you can do.</p></div></div>
+          <div class="step-card"><div class="step-num">8</div><div class="step-body"><b>Track every send</b><p>Mark each lead <b>Sent</b> after sending and <b>Replied</b> when they reply — clean stats, and you never double-send.</p></div></div>
+        </div>
 
         <div class="guide-block">
           <h3>Message templates</h3>
@@ -305,11 +322,6 @@ Not sure if my earlier message reached the right person. If you are not looking 
 
 I can also just send a few relevant sample works for your reference, and you can keep us in mind for future visuals, social media content, packaging, menu, campaign or website support.</p>
           </div>
-        </div>
-
-        <div class="guide-cta">
-          <p>One number sends ~50/day max — push too hard and the daily limit keeps dropping. Need more sending numbers? Reach out.</p>
-          <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
         </div>
       </section>
 
@@ -628,8 +640,11 @@ I can also just send a few relevant sample works for your reference, and you can
     document.querySelectorAll("[data-view]").forEach((button) => {
       button.addEventListener("click", () => {
         showView(button.dataset.view);
+        const sb = $("sidebar"); if (sb) sb.classList.remove("open");
       });
     });
+    if ($("nav-toggle")) $("nav-toggle").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.add("open"); });
+    if ($("nav-close")) $("nav-close").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); });
 
     function showView(viewName) {
       if (["home", "search", "result", "guide"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
