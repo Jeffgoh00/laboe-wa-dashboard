@@ -9,6 +9,7 @@
     :root { color-scheme: light; --bg:#f4f7fb; --panel:#fff; --ink:#17202a; --muted:#64748b; --line:#d9e2ec; --brand:#0f6b5c; --brand-2:#1d4ed8; --green:#147a4b; --green-soft:#eafaf1; --amber:#a14b12; --amber-soft:#fff7ed; --red:#b42318; --red-soft:#fff1f0; --shadow:0 12px 30px rgba(15,23,42,.08); }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+    button, a, label, input, select, textarea, .nav-item, .step-card, .win-card, .plan-card, .pill { touch-action: manipulation; }
     button, input, select, textarea { font:inherit; }
     button, .button { border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; padding:9px 12px; text-decoration:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; min-height:38px; }
     button.primary, .button.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
@@ -125,12 +126,14 @@
     .step-card.setup { background:var(--green-soft); border-color:var(--brand); }
     .step-num { flex:none; width:26px; height:26px; border-radius:50%; background:var(--brand); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; }
     .step-icon { flex:none; font-size:20px; line-height:26px; }
-    .step-body b { font-size:14px; color:#0f172a; }
-    .step-body p { margin:4px 0 0; font-size:13px; line-height:1.5; color:#475569; }
+    .step-body b { font-size:15px; color:#0f172a; }
+    .step-body p { margin:5px 0 0; font-size:14px; line-height:1.55; color:#475569; }
     .step-body ul { margin:6px 0 0; padding-left:18px; }
-    .step-body li { font-size:13px; line-height:1.5; color:#475569; margin-bottom:4px; }
+    .step-body li { font-size:14px; line-height:1.55; color:#475569; margin-bottom:5px; }
     .must-read { background:#ef4444; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
-    .guide-steps { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px; margin-bottom:18px; align-items:stretch; }
+    .guide-steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:18px; align-items:stretch; }
+    .guide-support { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+    .guide-support span { font-size:13px; color:#64748b; }
     .guide-steps .step-card { margin-bottom:0; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
     .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
@@ -198,7 +201,9 @@
       .plans { grid-template-columns:1fr; }
       #result-view .panel-head { flex-direction:column; align-items:stretch; }
       #result-view #share-win-btn { width:100%; min-height:46px; }
+      .guide-steps { grid-template-columns:repeat(2, 1fr); }
     }
+    @media (max-width: 560px) { .guide-steps { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -240,6 +245,7 @@
         <button class="nav-item active" data-view="home">Home</button>
         <button class="nav-item" data-view="search">Search</button>
         <button class="nav-item" data-view="result">Result</button>
+        <button class="nav-item" id="nav-plan" type="button">Plan</button>
       </nav>
     </aside>
     <main class="content">
@@ -269,16 +275,15 @@
       </section>
 
       <section id="guide-view" class="view panel hidden">
+        <div class="guide-support">
+          <span>Need more sending numbers? One number sends only ~50/day.</span>
+          <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
+        </div>
         <div class="panel-head">
           <div>
             <h2>📈 How to Close Sales <span class="must-read">Must Read</span></h2>
             <p>From mass-sending to closing the deal — the full playbook.</p>
           </div>
-        </div>
-
-        <div class="guide-cta">
-          <p>One number sends ~50/day max — push too hard and the daily limit keeps dropping. Need more sending numbers? Reach out.</p>
-          <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
         </div>
 
         <div class="step-card setup">
@@ -645,6 +650,7 @@ I can also just send a few relevant sample works for your reference, and you can
     });
     if ($("nav-toggle")) $("nav-toggle").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.add("open"); });
     if ($("nav-close")) $("nav-close").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); });
+    if ($("nav-plan")) $("nav-plan").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); $("plan-pill").click(); });
 
     function showView(viewName) {
       if (["home", "search", "result", "guide"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
