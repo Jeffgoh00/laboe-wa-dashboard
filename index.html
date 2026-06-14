@@ -116,6 +116,8 @@
     .right-rail { max-height:100%; overflow-y:auto; }
     #result-view { flex:1; min-height:0; overflow-y:auto; }
     #guide-view { flex:1; min-height:0; overflow-y:auto; }
+    #lists-view { flex:1; min-height:0; display:flex; flex-direction:column; }
+    #lists-view #lead-list { flex:1; min-height:0; overflow-y:auto; }
     .guide-block { margin-bottom:18px; }
     .guide-block h3 { font-size:15px; color:var(--brand); margin:0 0 8px; }
     .guide-block ul, .guide-block ol { margin:0; padding-left:20px; }
@@ -210,7 +212,7 @@
       .sidebar.open .nav-close { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; min-height:42px; font-size:22px; background:transparent; color:#d9fff7; border:0; }
       .sidebar.open .nav-list { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
       .sidebar.open .nav-item { width:100%; font-size:18px; padding:16px 14px; }
-      .sidebar.open .nav-logout { display:block; margin-top:10px; }
+      .sidebar.open .nav-logout { display:block; margin-top:10px; font-size:14px; }
       #logout { display:none; }
       .shell { grid-template-columns:1fr; }
       .right-rail { position:static; }
