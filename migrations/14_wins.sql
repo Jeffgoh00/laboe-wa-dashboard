@@ -57,3 +57,10 @@ drop policy if exists wins_storage_delete on storage.objects;
 create policy wins_storage_delete on storage.objects
   for delete to authenticated
   using (bucket_id = 'wins' and ((storage.foldername(name))[1] = public.current_merchant_id() or public.is_owner()));
+
+-- ---------- 编辑权限（UPDATE）：OWNER 改任意，或作者改自己 ----------
+drop policy if exists wins_update_own_or_owner on public.laboe_wins;
+create policy wins_update_own_or_owner on public.laboe_wins
+  for update to authenticated
+  using (public.is_owner() or merchant_id = public.current_merchant_id())
+  with check (public.is_owner() or merchant_id = public.current_merchant_id());

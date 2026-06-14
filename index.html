@@ -114,7 +114,7 @@
     .plan-cta { margin-top:auto; padding-top:14px; }
     .plan-cta button { width:100%; min-height:42px; }
     .plan-current { min-height:42px; display:flex; align-items:center; justify-content:center; color:var(--brand); font-weight:700; }
-    .wins-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px; margin-top:14px; }
+    .wins-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px; margin-top:14px; max-height:calc(100vh - 230px); overflow-y:auto; padding:2px 4px 2px 2px; }
     .win-card { border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
     .win-card .win-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
     .win-card .win-amount { font-size:22px; font-weight:800; color:var(--brand); }
@@ -130,6 +130,12 @@
     .win-form-row { display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; }
     .win-form-row input { flex:1; min-width:160px; }
     .win-form-actions { display:flex; gap:8px; margin-top:10px; }
+    .win-card .win-imgs img { cursor:zoom-in; }
+    .win-actions { display:flex; gap:12px; }
+    .win-edit { font-size:12px; color:var(--brand); background:transparent; border:0; cursor:pointer; padding:0; }
+    #lightbox { position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:1000; padding:24px; cursor:zoom-out; }
+    #lightbox.hidden { display:none; }
+    #lightbox img { max-width:95%; max-height:95%; border-radius:8px; box-shadow:0 12px 48px rgba(0,0,0,.5); }
     .plan-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.1); transform:translateY(-2px); }
     .plan-card.current { border-color:var(--brand); background:var(--green-soft); }
     .plan-card h3 { font-size:16px; }
@@ -304,6 +310,7 @@
           </div>
         </div>
         <div id="wins-grid" class="wins-grid"></div>
+        <div id="lightbox" class="hidden"><img id="lightbox-img" src="" alt="proof"></div>
       </section>
     </main>
   </div>
@@ -668,6 +675,8 @@
       syncAutoRefresh();
     }
 
+    let winsCache = [];
+    let editingWin = null;
     async function loadWins() {
       const grid = $("wins-grid");
       if (!grid) return;
@@ -678,22 +687,23 @@
     function renderWins(wins) {
       const grid = $("wins-grid");
       if (!grid) return;
+      winsCache = wins;
       if (!wins.length) { grid.innerHTML = '<p class="empty">No wins yet — be the first to share! 🎉</p>'; return; }
       const owner = myMerchantId === "OWNER";
       grid.innerHTML = wins.map(function (w) {
         const list = Array.isArray(w.image_urls) ? w.image_urls : [];
         const imgs = list.map(function (u) {
-          return '<a href="' + safe(u) + '" target="_blank" rel="noopener"><img src="' + safe(u) + '" alt="proof"></a>';
+          return '<img class="win-thumb" src="' + safe(u) + '" data-full="' + safe(u) + '" alt="proof">';
         }).join("");
         const amt = (w.amount != null && w.amount !== "") ? ('<span class="win-amount">RM ' + Number(w.amount).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span>') : '<span></span>';
-        const canDel = owner || w.merchant_id === myMerchantId;
-        const del = canDel ? ('<button class="win-del" data-del="' + safe(w.id) + '">Delete</button>') : '';
+        const canManage = owner || w.merchant_id === myMerchantId;
+        const actions = canManage ? ('<span class="win-actions"><button class="win-edit" data-edit="' + safe(w.id) + '">Edit</button><button class="win-del" data-del="' + safe(w.id) + '">Delete</button></span>') : '';
         const date = w.created_at ? new Date(w.created_at).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) : '';
         return '<div class="win-card">' +
           '<div class="win-top">' + amt + '<span class="win-poster">' + safe(w.poster_name || "A merchant") + '</span></div>' +
           '<p class="win-caption">' + safe(w.caption) + '</p>' +
           (imgs ? '<div class="win-imgs">' + imgs + '</div>' : '') +
-          '<div class="win-foot"><span class="win-date">' + date + '</span>' + del + '</div>' +
+          '<div class="win-foot"><span class="win-date">' + date + '</span>' + actions + '</div>' +
         '</div>';
       }).join("");
     }
@@ -702,31 +712,58 @@
       const amount = $("win-amount").value ? Number($("win-amount").value) : null;
       const files = Array.from(($("win-images").files) || []);
       if (!caption) { $("win-status").textContent = "Add a caption first."; return; }
-      if (files.length < 1) { $("win-status").textContent = "Upload at least 1 image."; return; }
       if (files.length > 3) { $("win-status").textContent = "Max 3 images."; return; }
+      if (!editingWin && files.length < 1) { $("win-status").textContent = "Upload at least 1 image."; return; }
       if (!myMerchantId) { $("win-status").textContent = "No merchant linked."; return; }
-      $("win-submit").disabled = true; $("win-status").textContent = "Uploading…";
+      $("win-submit").disabled = true; $("win-status").textContent = editingWin ? "Saving…" : "Uploading…";
       try {
-        const urls = [];
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i];
-          const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-          const path = myMerchantId + "/" + Date.now() + "-" + i + "." + (ext || "jpg");
-          const up = await client.storage.from("wins").upload(path, f, { upsert: false, contentType: f.type || "image/jpeg" });
-          if (up.error) throw up.error;
-          urls.push(client.storage.from("wins").getPublicUrl(path).data.publicUrl);
+        let urls = editingWin ? (Array.isArray(editingWin.image_urls) ? editingWin.image_urls : []) : [];
+        if (files.length) {
+          urls = [];
+          for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+            const path = myMerchantId + "/" + Date.now() + "-" + i + "." + (ext || "jpg");
+            const up = await client.storage.from("wins").upload(path, f, { upsert: false, contentType: f.type || "image/jpeg" });
+            if (up.error) throw up.error;
+            urls.push(client.storage.from("wins").getPublicUrl(path).data.publicUrl);
+          }
         }
-        const poster = (companyName || senderName || "A merchant");
-        const ins = await client.from("laboe_wins").insert({ merchant_id: myMerchantId, poster_name: poster, caption: caption, amount: amount, image_urls: urls });
-        if (ins.error) throw ins.error;
+        if (editingWin) {
+          const upd = await client.from("laboe_wins").update({ caption: caption, amount: amount, image_urls: urls }).eq("id", editingWin.id);
+          if (upd.error) throw upd.error;
+        } else {
+          const poster = (companyName || senderName || "A merchant");
+          const ins = await client.from("laboe_wins").insert({ merchant_id: myMerchantId, poster_name: poster, caption: caption, amount: amount, image_urls: urls });
+          if (ins.error) throw ins.error;
+        }
+        editingWin = null;
         $("win-caption").value = ""; $("win-amount").value = ""; $("win-images").value = "";
+        $("win-submit").textContent = "Post to the wall";
         $("win-form").classList.add("hidden"); $("win-status").textContent = "";
         loadWins();
       } catch (e) {
-        $("win-status").textContent = "Could not post: " + (e.message || e);
+        $("win-status").textContent = "Could not save: " + (e.message || e);
       } finally {
         $("win-submit").disabled = false;
       }
+    }
+    function openEdit(id) {
+      const w = winsCache.find(function (x) { return x.id === id; });
+      if (!w) return;
+      editingWin = w;
+      $("win-caption").value = w.caption || "";
+      $("win-amount").value = (w.amount != null ? w.amount : "");
+      $("win-images").value = "";
+      $("win-submit").textContent = "Save changes";
+      $("win-status").textContent = "Editing — leave images empty to keep current ones.";
+      $("win-form").classList.remove("hidden");
+      $("win-form").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    function openLightbox(url) {
+      const lb = $("lightbox"); if (!lb) return;
+      $("lightbox-img").src = url;
+      lb.classList.remove("hidden");
     }
     async function deleteWin(id) {
       if (!confirm("Delete this win from the wall?")) return;
@@ -734,10 +771,20 @@
       if (error) { alert("Could not delete: " + error.message); return; }
       loadWins();
     }
-    if ($("share-win-btn")) $("share-win-btn").addEventListener("click", function () { $("win-form").classList.toggle("hidden"); });
-    if ($("win-cancel")) $("win-cancel").addEventListener("click", function () { $("win-form").classList.add("hidden"); $("win-status").textContent = ""; });
+    if ($("share-win-btn")) $("share-win-btn").addEventListener("click", function () {
+      editingWin = null;
+      $("win-caption").value = ""; $("win-amount").value = ""; $("win-images").value = "";
+      $("win-submit").textContent = "Post to the wall"; $("win-status").textContent = "";
+      $("win-form").classList.toggle("hidden");
+    });
+    if ($("win-cancel")) $("win-cancel").addEventListener("click", function () { editingWin = null; $("win-form").classList.add("hidden"); $("win-status").textContent = ""; $("win-submit").textContent = "Post to the wall"; });
     if ($("win-submit")) $("win-submit").addEventListener("click", postWin);
-    if ($("wins-grid")) $("wins-grid").addEventListener("click", function (e) { const b = e.target.closest("[data-del]"); if (b) deleteWin(b.dataset.del); });
+    if ($("wins-grid")) $("wins-grid").addEventListener("click", function (e) {
+      const thumb = e.target.closest(".win-thumb"); if (thumb) { openLightbox(thumb.dataset.full); return; }
+      const ed = e.target.closest("[data-edit]"); if (ed) { openEdit(ed.dataset.edit); return; }
+      const b = e.target.closest("[data-del]"); if (b) deleteWin(b.dataset.del);
+    });
+    if ($("lightbox")) $("lightbox").addEventListener("click", function () { $("lightbox").classList.add("hidden"); $("lightbox-img").src = ""; });
 
     function showLoadError(error) {
       $("home-lists").innerHTML = '<p class="empty">Cannot load Supabase data: ' + safe(error.message) + '. Run setup.sql first, then reload the page.</p>';
