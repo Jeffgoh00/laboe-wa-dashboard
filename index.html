@@ -109,7 +109,7 @@
     .win-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.08); transform:translateY(-2px); }
     /* 固定视口：整页不滚，只 Daily Lists 内部滚 */
     .content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
-    #home-view.shell { flex:1; min-height:0; grid-template-rows: minmax(0, 1fr); }
+    #home-view.shell { flex:1; min-height:0; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
     #home-view .main-column { min-height:0; display:flex; flex-direction:column; }
     #home-view .main-column > .panel { flex:1; min-height:0; display:flex; flex-direction:column; }
     #home-lists { flex:1; min-height:0; overflow-y:auto; }
