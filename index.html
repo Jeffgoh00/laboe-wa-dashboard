@@ -25,6 +25,7 @@
     .nav-item { display:block; width:100%; text-align:left; color:#d4eee9; background:transparent; border:0; border-radius:8px; padding:10px 12px; margin:0 0 4px; text-decoration:none; transition:background-color .15s ease, color .15s ease; }
     .sidebar-bar { display:flex; align-items:center; justify-content:space-between; }
     .nav-toggle, .nav-close { display:none; }
+    .nav-logout { display:none; }
     .nav-list { display:flex; flex-direction:column; }
     .nav-item.active, .nav-item:hover { background:#1a3f37; color:#fff; }
     .content { padding:24px; max-width:1420px; width:100%; }
@@ -209,6 +210,8 @@
       .sidebar.open .nav-close { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; min-height:42px; font-size:22px; background:transparent; color:#d9fff7; border:0; }
       .sidebar.open .nav-list { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
       .sidebar.open .nav-item { width:100%; font-size:18px; padding:16px 14px; }
+      .sidebar.open .nav-logout { display:block; margin-top:10px; }
+      #logout { display:none; }
       .shell { grid-template-columns:1fr; }
       .right-rail { position:static; }
       .metric-grid { grid-template-columns:repeat(2,1fr); }
@@ -263,6 +266,7 @@
         <button class="nav-item" data-view="search">Search</button>
         <button class="nav-item" data-view="result">Result</button>
         <button class="nav-item" id="nav-plan" type="button">Plan</button>
+        <button class="nav-item nav-logout" id="nav-logout" type="button">Logout</button>
       </nav>
     </aside>
     <main class="content">
@@ -686,6 +690,7 @@ I can also just send a few relevant sample works for your reference, and you can
     if ($("nav-toggle")) $("nav-toggle").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.add("open"); });
     if ($("nav-close")) $("nav-close").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); });
     if ($("nav-plan")) $("nav-plan").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); $("plan-pill").click(); });
+    if ($("nav-logout")) $("nav-logout").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); $("logout").click(); });
 
     function showView(viewName) {
       if (["home", "search", "result", "guide"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
