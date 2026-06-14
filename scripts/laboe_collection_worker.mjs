@@ -80,9 +80,11 @@ async function upsertRows(table, rows, conflictKey) {
 async function fetchAllExistingLeads() {
   const pageSize = 1000;
   const rows = [];
+  // 90-day dedup window: businesses collected >90 days ago are released back into the pool.
+  const dedupCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   for (let offset = 0; ; offset += pageSize) {
     const page = await supabase("GET", "laboe_leads", {
-      query: `?select=merchant_id,run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&order=id.asc&limit=${pageSize}&offset=${offset}`,
+      query: `?select=merchant_id,run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&run_date=gte.${dedupCutoff}&order=id.asc&limit=${pageSize}&offset=${offset}`,
     });
     rows.push(...(page || []));
     if (!page || page.length < pageSize) break;
