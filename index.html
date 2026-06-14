@@ -576,7 +576,7 @@ I can also just send a few relevant sample works for your reference, and you can
       const phone = $("su-phone").value.trim();
       const password = $("su-password").value;
       if (!email || !phone || !password) { $("signup-error").textContent = "Please fill in email, phone and password."; return; }
-      const { data, error } = await client.auth.signUp({ email, password, options: { data: { phone } } });
+      const { data, error } = await client.auth.signUp({ email, password, options: { data: { phone }, emailRedirectTo: "https://laboestudio.github.io/wa-leads/" } });
       if (error) { $("signup-error").textContent = error.message; return; }
       if (!data.session) { $("signup-error").textContent = "Account created — please log in."; return; }
       session = data.session;
