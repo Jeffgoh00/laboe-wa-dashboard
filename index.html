@@ -113,6 +113,22 @@
     .plan-cta { margin-top:auto; padding-top:14px; }
     .plan-cta button { width:100%; min-height:42px; }
     .plan-current { min-height:42px; display:flex; align-items:center; justify-content:center; color:var(--brand); font-weight:700; }
+    .wins-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:14px; margin-top:14px; }
+    .win-card { border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
+    .win-card .win-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .win-card .win-amount { font-size:22px; font-weight:800; color:var(--brand); }
+    .win-card .win-poster { font-size:13px; color:var(--muted); text-align:right; }
+    .win-card .win-caption { margin:8px 0; font-size:14px; line-height:1.45; white-space:pre-wrap; }
+    .win-card .win-imgs { display:flex; gap:6px; flex-wrap:wrap; }
+    .win-card .win-imgs img { width:74px; height:74px; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+    .win-card .win-foot { display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+    .win-card .win-date { font-size:12px; color:var(--muted); }
+    .win-del { font-size:12px; color:#b91c1c; background:transparent; border:0; cursor:pointer; padding:0; }
+    .win-form { border:1px solid var(--line); border-radius:12px; padding:14px; margin-top:12px; background:var(--green-soft); }
+    .win-form textarea { width:100%; min-height:70px; box-sizing:border-box; }
+    .win-form-row { display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; }
+    .win-form-row input { flex:1; min-width:160px; }
+    .win-form-actions { display:flex; gap:8px; margin-top:10px; }
     .plan-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.1); transform:translateY(-2px); }
     .plan-card.current { border-color:var(--brand); background:var(--green-soft); }
     .plan-card h3 { font-size:16px; }
@@ -164,6 +180,7 @@
       <div class="brand">Laboe<span>WA</span></div>
       <button class="nav-item active" data-view="home">Home</button>
       <button class="nav-item" data-view="search">Search</button>
+      <button class="nav-item" data-view="result">Result</button>
     </aside>
     <main class="content">
       <header class="page-header">
@@ -264,6 +281,28 @@
         </div>
         <input id="reply-search" placeholder="Search phone number or business name">
         <div id="reply-results" class="lead-list" style="margin-top:12px"></div>
+      </section>
+      <section id="result-view" class="view panel hidden">
+        <div class="panel-head">
+          <div>
+            <h2>🎉 The Wins Wall</h2>
+            <p>Real deals closed by real merchants. Just landed one? Share it and fire up the rest of us.</p>
+          </div>
+          <button id="share-win-btn" class="primary" type="button">Share your win</button>
+        </div>
+        <div id="win-form" class="win-form hidden">
+          <textarea id="win-caption" placeholder="What happened? e.g. Closed a RM2,000 project from a cold WhatsApp opener! 🎉"></textarea>
+          <div class="win-form-row">
+            <input id="win-amount" type="number" min="0" step="0.01" placeholder="Amount RM (optional)">
+            <input id="win-images" type="file" accept="image/*" multiple>
+          </div>
+          <p id="win-status" class="subcopy"></p>
+          <div class="win-form-actions">
+            <button id="win-submit" class="primary" type="button">Post to the wall</button>
+            <button id="win-cancel" type="button">Cancel</button>
+          </div>
+        </div>
+        <div id="wins-grid" class="wins-grid"></div>
       </section>
     </main>
   </div>
@@ -472,6 +511,7 @@
       document.querySelectorAll("[data-view]").forEach((item) => item.classList.toggle("active", item.dataset.view === viewName));
       document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
       $(viewName + "-view").classList.remove("hidden");
+      if (viewName === "result") loadWins();
     }
 
     function noteRequestError(error) {
@@ -623,6 +663,77 @@
       renderPlan();
       syncAutoRefresh();
     }
+
+    async function loadWins() {
+      const grid = $("wins-grid");
+      if (!grid) return;
+      const { data, error } = await client.from("laboe_wins").select("*").order("created_at", { ascending: false });
+      if (error) { grid.innerHTML = '<p class="empty">Could not load wins: ' + safe(error.message) + '</p>'; return; }
+      renderWins(data || []);
+    }
+    function renderWins(wins) {
+      const grid = $("wins-grid");
+      if (!grid) return;
+      if (!wins.length) { grid.innerHTML = '<p class="empty">No wins yet — be the first to share! 🎉</p>'; return; }
+      const owner = myMerchantId === "OWNER";
+      grid.innerHTML = wins.map(function (w) {
+        const list = Array.isArray(w.image_urls) ? w.image_urls : [];
+        const imgs = list.map(function (u) {
+          return '<a href="' + safe(u) + '" target="_blank" rel="noopener"><img src="' + safe(u) + '" alt="proof"></a>';
+        }).join("");
+        const amt = (w.amount != null && w.amount !== "") ? ('<span class="win-amount">RM ' + Number(w.amount).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span>') : '<span></span>';
+        const canDel = owner || w.merchant_id === myMerchantId;
+        const del = canDel ? ('<button class="win-del" data-del="' + safe(w.id) + '">Delete</button>') : '';
+        const date = w.created_at ? new Date(w.created_at).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }) : '';
+        return '<div class="win-card">' +
+          '<div class="win-top">' + amt + '<span class="win-poster">' + safe(w.poster_name || "A merchant") + '</span></div>' +
+          '<p class="win-caption">' + safe(w.caption) + '</p>' +
+          (imgs ? '<div class="win-imgs">' + imgs + '</div>' : '') +
+          '<div class="win-foot"><span class="win-date">' + date + '</span>' + del + '</div>' +
+        '</div>';
+      }).join("");
+    }
+    async function postWin() {
+      const caption = $("win-caption").value.trim();
+      const amount = $("win-amount").value ? Number($("win-amount").value) : null;
+      const files = Array.from(($("win-images").files) || []);
+      if (!caption) { $("win-status").textContent = "Add a caption first."; return; }
+      if (files.length < 1) { $("win-status").textContent = "Upload at least 1 image."; return; }
+      if (files.length > 3) { $("win-status").textContent = "Max 3 images."; return; }
+      if (!myMerchantId) { $("win-status").textContent = "No merchant linked."; return; }
+      $("win-submit").disabled = true; $("win-status").textContent = "Uploading…";
+      try {
+        const urls = [];
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+          const path = myMerchantId + "/" + Date.now() + "-" + i + "." + (ext || "jpg");
+          const up = await client.storage.from("wins").upload(path, f, { upsert: false, contentType: f.type || "image/jpeg" });
+          if (up.error) throw up.error;
+          urls.push(client.storage.from("wins").getPublicUrl(path).data.publicUrl);
+        }
+        const poster = (companyName || senderName || "A merchant");
+        const ins = await client.from("laboe_wins").insert({ merchant_id: myMerchantId, poster_name: poster, caption: caption, amount: amount, image_urls: urls });
+        if (ins.error) throw ins.error;
+        $("win-caption").value = ""; $("win-amount").value = ""; $("win-images").value = "";
+        $("win-form").classList.add("hidden"); $("win-status").textContent = "";
+        loadWins();
+      } catch (e) {
+        $("win-status").textContent = "Could not post: " + (e.message || e);
+      } finally {
+        $("win-submit").disabled = false;
+      }
+    }
+    async function deleteWin(id) {
+      if (!confirm("Delete this win from the wall?")) return;
+      const { error } = await client.from("laboe_wins").delete().eq("id", id);
+      if (error) { alert("Could not delete: " + error.message); return; }
+      loadWins();
+    }
+    if ($("share-win-btn")) $("share-win-btn").addEventListener("click", function () { $("win-form").classList.toggle("hidden"); });
+    if ($("win-cancel")) $("win-cancel").addEventListener("click", function () { $("win-form").classList.add("hidden"); $("win-status").textContent = ""; });
+    if ($("win-submit")) $("win-submit").addEventListener("click", postWin);
+    if ($("wins-grid")) $("wins-grid").addEventListener("click", function (e) { const b = e.target.closest("[data-del]"); if (b) deleteWin(b.dataset.del); });
 
     function showLoadError(error) {
       $("home-lists").innerHTML = '<p class="empty">Cannot load Supabase data: ' + safe(error.message) + '. Run setup.sql first, then reload the page.</p>';
