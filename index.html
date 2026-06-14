@@ -219,7 +219,8 @@
       .metric-grid { grid-template-columns:repeat(2,1fr); }
       .filters { grid-template-columns:1fr; }
       .app, .content { height:auto; overflow:visible; display:block; }
-      #home-lists { overflow:visible; }
+      #home-view .main-column, #home-view .main-column > .panel, #lists-view { display:block; }
+      #home-lists, #lists-view #lead-list { flex:none; overflow:visible; }
       .plans { grid-template-columns:1fr; }
       #result-view .panel-head { flex-direction:column; align-items:stretch; }
       #result-view #share-win-btn { width:100%; min-height:46px; }
