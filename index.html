@@ -516,8 +516,9 @@ I can also just send a few relevant sample works for your reference, and you can
         return;
       }
       showApp();
-      await loadAll();
       try { const v = localStorage.getItem("laboeView"); if (v && v !== "home" && $(v + "-view")) showView(v); } catch (e) {}
+      await loadAll();
+      if ($("result-view") && !$("result-view").classList.contains("hidden")) loadWins();
       subscribeRealtime();
       syncAutoRefresh();
     }
