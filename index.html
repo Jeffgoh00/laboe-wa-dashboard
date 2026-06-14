@@ -118,6 +118,15 @@
     .guide-cta { border:1px solid var(--brand); border-radius:10px; padding:14px; background:var(--green-soft); }
     .guide-cta p { font-size:13px; line-height:1.55; color:#334155; margin:0 0 10px; }
     .guide-cta-btn { display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:#fff; padding:10px 16px; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px; }
+    .step-card { display:flex; gap:12px; align-items:flex-start; border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; background:#fff; }
+    .step-card.setup { background:var(--green-soft); border-color:var(--brand); }
+    .step-num { flex:none; width:26px; height:26px; border-radius:50%; background:var(--brand); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; }
+    .step-icon { flex:none; font-size:20px; line-height:26px; }
+    .step-body b { font-size:14px; color:#0f172a; }
+    .step-body p { margin:4px 0 0; font-size:13px; line-height:1.5; color:#475569; }
+    .step-body ul { margin:6px 0 0; padding-left:18px; }
+    .step-body li { font-size:13px; line-height:1.5; color:#475569; margin-bottom:4px; }
+    .must-read { background:#ef4444; color:#fff; font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
     .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
     .identity-strip::before { content:"⚑ Set your name & company — required before you can collect"; width:100%; font-size:12px; font-weight:800; color:#a14b12; margin-bottom:2px; }
@@ -211,7 +220,7 @@
   <div id="app" class="app hidden">
     <aside class="sidebar">
       <div class="brand">Laboe<span>WA</span></div>
-      <button class="nav-item" data-view="guide">Guide</button>
+      <button class="nav-item" data-view="guide">Guide <span class="must-read">Must Read</span></button>
       <button class="nav-item active" data-view="home">Home</button>
       <button class="nav-item" data-view="search">Search</button>
       <button class="nav-item" data-view="result">Result</button>
@@ -245,46 +254,41 @@
       <section id="guide-view" class="view panel hidden">
         <div class="panel-head">
           <div>
-            <h2>📈 How to Close Sales · 成交指南</h2>
-            <p>From mass-sending to closing the deal — the full playbook. 从群发到谈成的完整步骤。</p>
+            <h2>📈 How to Close Sales <span class="must-read">Must Read</span></h2>
+            <p>From mass-sending to closing the deal — the full playbook.</p>
           </div>
         </div>
 
-        <div class="guide-block">
-          <h3>1. Setup · 准备</h3>
-          <ul>
-            <li><b>EN:</b> Use a separate “burner” number for mass-sending — not your main number. Replace it every 7–14 days.<br><b>中:</b> 用一个「消耗号」专门群发（不是你主号），每 7–14 天换一个。</li>
-            <li><b>EN:</b> One WhatsApp number can send <b>max ~50 messages/day</b>. Spread them out in small batches.<br><b>中:</b> 一个 WhatsApp 号一天最多发 <b>~50 个</b>，尽量分批发。</li>
-            <li><b>EN:</b> Keep your <b>main number</b> for replies &amp; sending your portfolio.<br><b>中:</b> 主号留着回复客户、发作品集。</li>
-          </ul>
+        <div class="step-card setup">
+          <div class="step-icon">⚙️</div>
+          <div class="step-body">
+            <b>Before you start</b>
+            <ul>
+              <li>Use a separate “burner” number for mass-sending — not your main number. Replace it every 7–14 days.</li>
+              <li>One WhatsApp number sends <b>max ~50/day</b>. Push too hard and the daily limit keeps dropping, so send in small batches.</li>
+              <li>Keep your <b>main number</b> for replies &amp; sending your portfolio.</li>
+            </ul>
+          </div>
         </div>
 
-        <div class="guide-block">
-          <h3>2. The Flow · 流程</h3>
-          <ol>
-            <li><b>EN:</b> From the system, send the first opener.<br><b>中:</b> 从系统点击发送第一封开场白。</li>
-            <li><b>EN:</b> They reply → switch to your main number, send the <b>case-study message (Template A) WITH your portfolio</b>.<br><b>中:</b> 有人回复 → 换主号，把「案例话术（模板 A）」配上作品集一起发。</li>
-            <li><b>EN:</b> Day 3, still no reply → send <b>Follow-up (Template B)</b>.<br><b>中:</b> 第 3 天还没回复 → 发「跟进信息（模板 B）」。</li>
-            <li><b>EN:</b> Sent portfolio but no reply → send one more follow-up: ask if they have upcoming <b>events</b> or <b>design-upgrade</b> needs.<br><b>中:</b> 发了作品集还没回复 → 再跟一条：问客户近期有没有做活动、或需要升级设计。</li>
-            <li><b>EN:</b> Still no reply → stop. <b>Anyone who replies can usually be closed.</b><br><b>中:</b> 还是没回复 → 就不发了。<b>有回复的基本都能谈。</b></li>
-          </ol>
-        </div>
+        <div class="step-card"><div class="step-num">1</div><div class="step-body"><b>Send the first opener</b><p>From the system, send your first message to the lead.</p></div></div>
+
+        <div class="step-card"><div class="step-num">2</div><div class="step-body"><b>They reply → send case study + portfolio</b><p>Switch to your main number. Send <b>Template A</b> with your portfolio. Send the portfolio as a <b>PDF under 5MB</b> — don’t spam separate images.</p></div></div>
+
+        <div class="step-card"><div class="step-num">3</div><div class="step-body"><b>Day 3, no reply → follow up</b><p>Send <b>Template B</b> to gently follow up.</p></div></div>
+
+        <div class="step-card"><div class="step-num">4</div><div class="step-body"><b>Portfolio sent, no reply → one more nudge</b><p>Ask if they have upcoming <b>events</b> or <b>design-upgrade</b> needs.</p></div></div>
+
+        <div class="step-card"><div class="step-num">5</div><div class="step-body"><b>Quote sent, no reply → offer a discount</b><p>Send a limited offer, e.g. <b>-35% new-client campaign</b>, to create urgency.</p></div></div>
+
+        <div class="step-card"><div class="step-num">6</div><div class="step-body"><b>Still no reply → move on</b><p>Stop here. Anyone who replies can usually be closed.</p></div></div>
+
+        <div class="step-card"><div class="step-num">7</div><div class="step-body"><b>Portfolio doesn’t match their industry?</b><p>Ask the client for a reference style, or offer to try <b>one design</b> so they can see what you can do.</p></div></div>
+
+        <div class="step-card"><div class="step-num">8</div><div class="step-body"><b>Track every send</b><p>Mark each lead <b>Sent</b> after sending and <b>Replied</b> when they reply — clean stats, and you never double-send.</p></div></div>
 
         <div class="guide-block">
-          <h3>3. Track every send · 记录发送状态</h3>
-          <ul>
-            <li><b>EN:</b> After you send, mark the lead <b>Sent</b>. When they reply, mark it <b>Replied</b>.<br><b>中:</b> 发送后点 <b>Sent</b>；有回复点 <b>Replied</b>。</li>
-            <li><b>EN:</b> This tracks what’s sent, not sent &amp; replied — clean stats, and you never double-send.<br><b>中:</b> 这样能记录哪些发了、哪些没发、哪些回复了，数据一目了然，也不会重复发。</li>
-          </ul>
-        </div>
-
-        <div class="guide-block">
-          <h3>4. If your portfolio doesn’t match their industry · 作品集没有客户行业时</h3>
-          <p><b>EN:</b> Ask the client for a reference style, or offer to try one design so they can see what you can do.<br><b>中:</b> 让客户提供参考风格，或主动试做一张，展示我们的能力。</p>
-        </div>
-
-        <div class="guide-block">
-          <h3>Message templates · 话术模板</h3>
+          <h3>Message templates</h3>
           <div class="guide-msg">
             <div class="guide-msg-head"><b>A · Case study — send WITH portfolio when they reply</b><button class="guide-copy" type="button" data-copy="msgA">Copy</button></div>
             <p id="msgA">Here’s a case study to share, perhaps they don’t feature your industry or preferred style.
@@ -304,7 +308,7 @@ I can also just send a few relevant sample works for your reference, and you can
         </div>
 
         <div class="guide-cta">
-          <p><b>EN:</b> One number sends ~50/day max — push too hard and the daily limit keeps dropping. Need more sending numbers? Reach out.<br><b>中:</b> 一个号一天最多 ~50 个，发太猛每天会越来越少。需要更多号？找我们。</p>
+          <p>One number sends ~50/day max — push too hard and the daily limit keeps dropping. Need more sending numbers? Reach out.</p>
           <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
         </div>
       </section>
