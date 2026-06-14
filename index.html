@@ -134,6 +134,9 @@
     .guide-steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:18px; align-items:stretch; }
     .guide-support { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
     .guide-support span { font-size:13px; color:#64748b; }
+    .guide-support-card { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; border:1px solid var(--brand); border-radius:12px; padding:14px 16px; background:var(--green-soft); margin-bottom:14px; }
+    .guide-support-card b { font-size:14px; color:var(--brand); display:block; }
+    .guide-support-card span { font-size:13px; color:#475569; }
     .guide-steps .step-card { margin-bottom:0; }
     #plan-pill { cursor:pointer; background:#eef2ff; border-color:#c7d2fe; color:#3730a3; font-weight:700; }
     .identity-strip { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:0 0 16px; padding:12px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; }
@@ -274,11 +277,15 @@
         </div>
       </section>
 
-      <section id="guide-view" class="view panel hidden">
-        <div class="guide-support">
-          <span>Need more sending numbers? One number sends only ~50/day.</span>
+      <section id="guide-view" class="view hidden">
+        <div class="guide-support-card">
+          <div>
+            <b>Need more sending numbers?</b>
+            <span>One number sends only ~50/day — push too hard and the limit keeps dropping.</span>
+          </div>
           <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
         </div>
+        <div class="panel guide-content">
         <div class="panel-head">
           <div>
             <h2>📈 How to Close Sales <span class="must-read">Must Read</span></h2>
@@ -327,6 +334,7 @@ Not sure if my earlier message reached the right person. If you are not looking 
 
 I can also just send a few relevant sample works for your reference, and you can keep us in mind for future visuals, social media content, packaging, menu, campaign or website support.</p>
           </div>
+        </div>
         </div>
       </section>
 
