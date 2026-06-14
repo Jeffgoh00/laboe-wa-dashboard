@@ -200,7 +200,7 @@
     <main class="content">
       <header class="page-header">
         <div id="page-title">
-          <h1>WhatsApp Lead Home</h1>
+          <h1>Lead Dashboard</h1>
         </div>
         <div class="top-actions">
           <button id="plan-pill" class="pill" type="button" title="View plans / upgrade">Plan</button>
@@ -404,6 +404,8 @@
 
     $("date-start").addEventListener("change", async (event) => {
       startDate = event.target.value || startDate;
+      currentDate = startDate;
+      $("date-end").value = currentDate;
       normalizeDateRange();
       storeDateRange();
       await loadAll();
