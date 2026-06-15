@@ -171,7 +171,7 @@ const sourceLanes = [
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
     .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 新加坡 + 加厚 ——
-  ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar", "Orchard Singapore", "Tampines Singapore", "Jurong Singapore", "Woodlands Singapore", "Bedok Singapore", "Punggol Singapore", "Ang Mo Kio Singapore", "Toa Payoh Singapore", "Bukit Timah Singapore", "Clementi Singapore", "Serangoon Singapore", "Hougang Singapore", "Yishun Singapore", "Bishan Singapore", "Pasir Ris Singapore", "Sengkang Singapore", "Bukit Batok Singapore"]
+  ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
     .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
 ];
 
@@ -277,7 +277,7 @@ function normalizeMalaysiaPhone(value) {
 }
 
 function isMobileWhatsapp(digits) {
-  return /^601\d{8,9}$/.test(digits) || /^65[689]\d{7}$/.test(digits);
+  return /^601\d{8,9}$/.test(digits);
 }
 
 function reviewCountNumber(value) {
