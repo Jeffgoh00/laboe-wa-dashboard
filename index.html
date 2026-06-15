@@ -648,6 +648,7 @@ I can also just send a few relevant sample works for your reference, and you can
         else if (myTier !== "none") cta.innerHTML = '<button data-downgrade="' + t + '">Downgrade</button>';
         else cta.innerHTML = "";
       });
+      $("manage-billing").classList.toggle("hidden", !["active", "trialing", "past_due"].includes(mySubStatus));
       $("upgrade-modal").classList.remove("hidden");
     });
     $("close-upgrade").addEventListener("click", () => $("upgrade-modal").classList.add("hidden"));
