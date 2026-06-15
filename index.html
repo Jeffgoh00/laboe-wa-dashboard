@@ -526,7 +526,7 @@ I can also just send a few relevant sample works for your reference, and you can
     let senderName = "";
     let companyName = "";
     let myTier = "none";
-    let myHasCustomer = false;
+    let mySubStatus = null;
     let myCap = null;
     let myTrialUsed = false;
     const TIER_NAMES = { none: "No plan", tier1: "Basic", tier2: "Pro", tier3: "Max", unlimited: "Unlimited", owner: "Owner" };
@@ -657,9 +657,9 @@ I can also just send a few relevant sample works for your reference, and you can
       if (!btn) return;
       const target = btn.dataset.upgrade || btn.dataset.downgrade;
       const label = btn.dataset.downgrade ? "Downgrade" : "Upgrade";
-      // 有 Stripe customer(真实订阅者,任何 status) → Customer Portal,绝不重复开订阅
-      // 无 customer(comp 账户 / 全新 none) → create-checkout 订这个档,不报 null
-      if (myHasCustomer) { $("manage-billing").click(); return; }
+      // 有 active 订阅 → Customer Portal 换/管套餐(create-checkout 的 guard 也会兜底防重复)
+      // 无 active 订阅(No plan,即便有旧 customer) → create-checkout 去 Checkout 订阅
+      if (["active", "trialing", "past_due"].includes(mySubStatus)) { $("manage-billing").click(); return; }
       btn.disabled = true; btn.textContent = "Redirecting…";
       const { data, error } = await client.functions.invoke("create-checkout", { body: { tier: target } });
       if (error || !data || !data.url) {
@@ -810,9 +810,9 @@ I can also just send a few relevant sample works for your reference, and you can
       const el = $("plan-pill");
       if (!el || !myMerchantId) return;
       // 每次都重新取 plan，保证 global-view 改 tier 后能同步
-      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used,stripe_customer_id").eq("merchant_id", myMerchantId).maybeSingle();
+      const { data: mer } = await client.from("laboe_merchants").select("tier,monthly_lead_cap,trial_used,subscription_status").eq("merchant_id", myMerchantId).maybeSingle();
       myTier = mer && mer.tier ? mer.tier : "none";
-      myHasCustomer = !!(mer && mer.stripe_customer_id);
+      mySubStatus = mer ? mer.subscription_status : null;
       myCap = mer ? mer.monthly_lead_cap : null;
       myTrialUsed = mer ? !!mer.trial_used : false;
       const now = new Date();
