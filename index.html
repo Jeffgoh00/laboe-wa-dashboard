@@ -148,6 +148,10 @@
     .guide-support-card span { font-size:13px; color:#475569; }
     .guide-onboard { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; border:1px solid #f59e0b; background:#fff7ed; border-radius:12px; padding:14px 16px; margin-bottom:14px; }
     .guide-onboard span { font-size:14px; font-weight:700; color:#9a3412; }
+    .preview-banner { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background:#102520; color:#d9fff7; border-radius:12px; padding:14px 18px; margin-bottom:16px; }
+    .preview-banner span { font-size:14px; font-weight:700; }
+    .preview-cta { display:flex; gap:8px; }
+    body.preview .identity-strip { opacity:.65; }
     .guide-funnel { border:1px solid var(--brand); border-radius:12px; padding:14px 16px; background:var(--green-soft); margin-bottom:16px; }
     .guide-funnel h3 { font-size:15px; color:var(--brand); margin:0 0 10px; }
     .funnel-row { display:flex; align-items:stretch; gap:8px; }
@@ -276,6 +280,13 @@
       </nav>
     </aside>
     <main class="content">
+      <div id="preview-banner" class="preview-banner hidden">
+        <span>👀 You're viewing a preview. Log in or create an account to start collecting leads.</span>
+        <div class="preview-cta">
+          <button id="preview-login" class="primary" type="button">Log in</button>
+          <button id="preview-signup" type="button">Create account</button>
+        </div>
+      </div>
       <header class="page-header">
         <div id="page-title">
           <h1>Lead Dashboard</h1>
@@ -546,7 +557,7 @@ I can also just send a few relevant sample works for your reference, and you can
       const { data } = await client.auth.getSession();
       session = data.session;
       if (!session) {
-        showLogin();
+        showPreview();
         return;
       }
       showApp();
@@ -568,6 +579,35 @@ I can also just send a few relevant sample works for your reference, and you can
     function showLogin() {
       $("login").classList.remove("hidden");
       $("app").classList.add("hidden");
+    }
+
+    function showPreview() {
+      $("login").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      document.body.classList.add("preview");
+      try {
+        const seed = JSON.parse($("seed-data").textContent);
+        collectionRun = seed.collection || null;
+        batches = seed.batch ? [seed.batch] : [];
+        leads = Array.isArray(seed.leads) ? seed.leads : [];
+      } catch (e) {}
+      myMerchantId = "PREVIEW"; myTier = "none"; myCap = null;
+      normalizeDateRange();
+      $("date-start").value = startDate;
+      $("date-end").value = currentDate;
+      $("user-pill").textContent = "Preview";
+      $("plan-pill").textContent = "Preview";
+      render();
+      showView("home");
+      $("preview-banner").classList.remove("hidden");
+    }
+
+    function exitPreviewToLogin(signup) {
+      document.body.classList.remove("preview");
+      $("app").classList.add("hidden");
+      $("login").classList.remove("hidden");
+      if (signup) { $("login-view").classList.add("hidden"); reveal($("signup-view")); }
+      else { $("signup-view").classList.add("hidden"); reveal($("login-view")); }
     }
 
     function showApp() {
@@ -613,6 +653,18 @@ I can also just send a few relevant sample works for your reference, and you can
     function reveal(el) { el.classList.remove("hidden", "fade-in"); void el.offsetWidth; el.classList.add("fade-in"); }
     $("to-signup").addEventListener("click", () => { $("login-view").classList.add("hidden"); reveal($("signup-view")); });
     $("to-login").addEventListener("click", () => { $("signup-view").classList.add("hidden"); reveal($("login-view")); });
+    if ($("preview-login")) $("preview-login").addEventListener("click", () => exitPreviewToLogin(false));
+    if ($("preview-signup")) $("preview-signup").addEventListener("click", () => exitPreviewToLogin(true));
+    const _appEl = document.querySelector(".app");
+    if (_appEl) _appEl.addEventListener("click", function (e) {
+      if (!document.body.classList.contains("preview")) return;
+      const nav = e.target.closest("[data-view]");
+      if (nav && (nav.dataset.view === "home" || nav.dataset.view === "guide")) return;
+      const act = e.target.closest("button, [data-view], #plan-pill");
+      if (!act || act.closest("#preview-banner")) return;
+      e.preventDefault(); e.stopPropagation();
+      exitPreviewToLogin(false);
+    }, true);
     $("signup-form").addEventListener("submit", async (event) => {
       event.preventDefault(); $("signup-error").textContent = "";
       const email = $("su-email").value.trim();
