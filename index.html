@@ -146,6 +146,8 @@
     .guide-support-card { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; border:1px solid var(--brand); border-radius:12px; padding:14px 16px; background:var(--green-soft); margin-bottom:14px; }
     .guide-support-card b { font-size:14px; color:var(--brand); display:block; }
     .guide-support-card span { font-size:13px; color:#475569; }
+    .guide-onboard { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; border:1px solid #f59e0b; background:#fff7ed; border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+    .guide-onboard span { font-size:14px; font-weight:700; color:#9a3412; }
     .guide-funnel { border:1px solid var(--brand); border-radius:12px; padding:14px 16px; background:var(--green-soft); margin-bottom:16px; }
     .guide-funnel h3 { font-size:15px; color:var(--brand); margin:0 0 10px; }
     .funnel-row { display:flex; align-items:stretch; gap:8px; }
@@ -300,6 +302,10 @@
       </section>
 
       <section id="guide-view" class="view hidden">
+        <div id="guide-onboard" class="guide-onboard hidden">
+          <span>👋 New here? Read this guide first — it's how you turn leads into real deals. Then hit Start.</span>
+          <button id="guide-start" class="primary" type="button">✓ I've read it — Start</button>
+        </div>
         <div class="guide-support-card">
           <div>
             <b>Need more sending numbers?</b>
@@ -544,7 +550,15 @@ I can also just send a few relevant sample works for your reference, and you can
         return;
       }
       showApp();
-      try { const v = localStorage.getItem("laboeView"); if (v && v !== "home" && $(v + "-view")) showView(v); } catch (e) {}
+      try {
+        if (!localStorage.getItem("guideSeen")) {
+          showView("guide");
+          const _ob = $("guide-onboard"); if (_ob) _ob.classList.remove("hidden");
+        } else {
+          const v = localStorage.getItem("laboeView");
+          if (v && v !== "home" && $(v + "-view")) showView(v);
+        }
+      } catch (e) {}
       await loadAll();
       if ($("result-view") && !$("result-view").classList.contains("hidden")) loadWins();
       subscribeRealtime();
@@ -696,6 +710,7 @@ I can also just send a few relevant sample works for your reference, and you can
     if ($("nav-close")) $("nav-close").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); });
     if ($("nav-plan")) $("nav-plan").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); $("plan-pill").click(); });
     if ($("nav-logout")) $("nav-logout").addEventListener("click", () => { const sb = $("sidebar"); if (sb) sb.classList.remove("open"); $("logout").click(); });
+    if ($("guide-start")) $("guide-start").addEventListener("click", () => { try { localStorage.setItem("guideSeen", "1"); } catch (e) {} const _ob = $("guide-onboard"); if (_ob) _ob.classList.add("hidden"); showView("home"); });
 
     function showView(viewName) {
       if (["home", "search", "result", "guide"].includes(viewName)) { try { localStorage.setItem("laboeView", viewName); } catch (e) {} }
