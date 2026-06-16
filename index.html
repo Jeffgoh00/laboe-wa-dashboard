@@ -613,6 +613,7 @@ I can also just send a few relevant sample works for your reference, and you can
     function showApp() {
       document.body.classList.remove("preview");
       if ($("preview-banner")) $("preview-banner").classList.add("hidden");
+      myMerchantId = null;
       $("login").classList.add("hidden");
       $("app").classList.remove("hidden");
       $("user-pill").textContent = session.user.email || session.user.id;
