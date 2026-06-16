@@ -56,6 +56,22 @@ const excludePatterns = [
   /\besthetics service\b/i,
 ];
 
+// 马来文店名词:只对 business_name 匹配（不碰 address，因马来西亚地址本就含 Jalan/Taman 等马来文）
+const malayNamePatterns = [
+  /\bkedai\b/i,
+  /\bemas\b/i,
+  /\bruncit\b/i,
+  /\bwarung\b/i,
+  /\bgerai\b/i,
+  /\bpasar(aya)?\b/i,
+  /\bperniagaan\b/i,
+  /\bborong\b/i,
+  /\bjualan\b/i,
+  /\bperabot\b/i,
+  /\bbasikal\b/i,
+  /\bubat\b/i,
+];
+
 const sourceLanes = [
   ["beauty cosmetics shop", "Ampang"],
   ["skincare store", "Mont Kiara"],
@@ -414,6 +430,7 @@ function isExcluded(row) {
     row.source_lane,
   ].filter(Boolean).join(" ");
   if (excludePatterns.some((pattern) => pattern.test(haystack))) return true;
+  if (malayNamePatterns.some((pattern) => pattern.test(row.business_name || ""))) return true;
   if (reviewCountNumber(row.reviews) > 2000) return true;
   return false;
 }
