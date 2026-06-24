@@ -904,11 +904,38 @@ I can also just send a few relevant sample works for your reference, and you can
       return String(text || "").split("{{SENDER}}").join(senderName || "Jeff").split("{{COMPANY}}").join(companyName || "Laboe Studio");
     }
 
+    // Closing lines emitted by the collector's buildMessage (scripts/laboe_collect_google_maps_leads.mjs).
+    const CLOSING_VARIANTS = [
+      "If helpful, I can send a few relevant sample works first.",
+      "If you're open to it, I'd be happy to share a few relevant samples first.",
+      "Happy to send over a few sample works first if that's useful — no hard pitch.",
+      "If it sounds relevant, I can share a few examples of our work first.",
+      "Would it be okay if I sent a few relevant samples over first?",
+    ];
+
+    // Split the single-line opener into 3 WhatsApp paragraphs: greeting │ context + angle │ soft ask.
+    function segmentMessage(text) {
+      let out = String(text || "");
+      if (out.indexOf("\n") !== -1) return out;
+      out = out.replace(" I came across", "\n\nI came across");
+      for (const close of CLOSING_VARIANTS) {
+        if (out.endsWith(close)) {
+          out = out.slice(0, out.length - close.length).replace(/\s+$/, "") + "\n\n" + close;
+          break;
+        }
+      }
+      return out;
+    }
+
+    function messageFor(lead) {
+      return segmentMessage(personalize(lead.suggested_opening_message));
+    }
+
     function waLink(lead) {
       if (!lead.whatsapp_click_to_send_link) return "#";
       const phone = String(lead.phone || "").replace(/\D/g, "");
       if (!phone) return "#";
-      return "https://wa.me/" + phone + "?text=" + encodeURIComponent(personalize(lead.suggested_opening_message));
+      return "https://wa.me/" + phone + "?text=" + encodeURIComponent(messageFor(lead));
     }
 
     async function loadAll() {
@@ -1316,7 +1343,7 @@ I can also just send a few relevant sample works for your reference, and you can
           '<span class="status-chip" data-status="' + safe(lead.send_status) + '">' + label(lead.send_status) + '</span>' +
         '</div>' +
         '<p>' + safe(lead.observed_design_need || "") + '</p>' +
-        '<textarea readonly>' + safe(personalize(lead.suggested_opening_message)) + '</textarea>' +
+        '<textarea readonly>' + safe(messageFor(lead)) + '</textarea>' +
         '<div class="actions">' +
           '<a class="button primary" href="' + safe(waLink(lead)) + '" target="_blank" rel="noopener">Open WhatsApp</a>' +
           '<button data-status-update="sent">Sent</button>' +

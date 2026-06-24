@@ -191,13 +191,14 @@ const sourceLanes = [
     .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
 ];
 
+// Order = priority (drives candidateSort rank + fill order). Mix updated 2026-06-24.
 const targetQuotas = new Map([
-  ["beauty / skincare / cosmetics", 25],
+  ["jewelry / watches / accessories", 25],
+  ["maternity / baby / kids product", 20],
+  ["event / wedding / party / gifting", 15],
   ["fashion / apparel / boutique", 18],
-  ["maternity / baby / kids product", 15],
-  ["home / living / decor", 20],
-  ["jewelry / watches / accessories", 15],
-  ["event / wedding / party / gifting", 7],
+  ["beauty / skincare / cosmetics", 15],
+  ["home / living / decor", 7],
 ]);
 
 const industryCaps = new Map([
