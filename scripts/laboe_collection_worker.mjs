@@ -9,6 +9,7 @@ const supabaseUrl = mustEnv("SUPABASE_URL").replace(/\/$/, "");
 const serviceRoleKey = mustEnv("SUPABASE_SERVICE_ROLE_KEY");
 const explicitDate = process.env.COLLECTION_DATE || "";
 const explicitMerchant = process.env.MERCHANT_ID || "";
+const explicitCampaign = process.env.CAMPAIGN_ID || "";
 const explicitSearchRequestId = process.env.SEARCH_REQUEST_ID || "";
 const historyFilePath = path.join("lead_outputs", "supabase-history.json");
 
@@ -40,14 +41,26 @@ async function supabase(method, table, { query = "", body, prefer } = {}) {
 // 否则（cron 兜底）扫最旧一条 status=requested 的 search_request。
 async function resolveRequest() {
   if (explicitMerchant && explicitDate) {
-    return { merchant_id: explicitMerchant, run_date: explicitDate, search_request_id: explicitSearchRequestId || null, target_leads: null };
+    return {
+      merchant_id: explicitMerchant,
+      campaign_id: explicitCampaign || "design",
+      run_date: explicitDate,
+      search_request_id: explicitSearchRequestId || null,
+      target_leads: null,
+    };
   }
   const rows = await supabase("GET", "laboe_search_requests", {
-    query: "?select=id,merchant_id,run_date,target_leads&status=eq.requested&order=created_at.asc&limit=1",
+    query: "?select=id,merchant_id,campaign_id,run_date,target_leads&status=eq.requested&order=created_at.asc&limit=1",
   });
   const sr = rows?.[0];
   if (!sr) return null;
-  return { merchant_id: sr.merchant_id, run_date: sr.run_date, search_request_id: sr.id, target_leads: sr.target_leads };
+  return {
+    merchant_id: sr.merchant_id,
+    campaign_id: sr.campaign_id || "design",
+    run_date: sr.run_date,
+    search_request_id: sr.id,
+    target_leads: sr.target_leads,
+  };
 }
 
 async function getMerchantTarget(merchantId, fallback) {
@@ -65,7 +78,7 @@ async function setSearchStatus(id, status, extra = {}) {
 }
 
 async function upsertRun(run) {
-  await supabase("POST", "laboe_collection_runs?on_conflict=merchant_id,run_date", { body: run });
+  await supabase("POST", "laboe_collection_runs?on_conflict=merchant_id,campaign_id,run_date", { body: run });
 }
 
 async function upsertRows(table, rows, conflictKey) {
@@ -76,15 +89,15 @@ async function upsertRows(table, rows, conflictKey) {
   }
 }
 
-// 全局去重：拉所有商户（含 OWNER）的全部 leads，作为"永不联系同一商家两次"的依据。
-async function fetchAllExistingLeads() {
+// Campaign 内全局去重：拉所有商户同 campaign 最近 90 天 leads。
+async function fetchExistingCampaignLeads(campaignId) {
   const pageSize = 1000;
   const rows = [];
   // 90-day dedup window: businesses collected >90 days ago are released back into the pool.
   const dedupCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   for (let offset = 0; ; offset += pageSize) {
     const page = await supabase("GET", "laboe_leads", {
-      query: `?select=merchant_id,run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&run_date=gte.${dedupCutoff}&order=id.asc&limit=${pageSize}&offset=${offset}`,
+      query: `?select=merchant_id,campaign_id,run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&campaign_id=eq.${encodeURIComponent(campaignId)}&run_date=gte.${dedupCutoff}&order=id.asc&limit=${pageSize}&offset=${offset}`,
     });
     rows.push(...(page || []));
     if (!page || page.length < pageSize) break;
@@ -97,10 +110,10 @@ async function writeSupabaseHistoryFile(existingLeads) {
   await fs.writeFile(historyFilePath, JSON.stringify({ newLeads: existingLeads }));
 }
 
-// list 编号在 (merchant_id, run_date) 范围内连续
-async function getNextListIndex(merchantId, runDate) {
+// list 编号在 (merchant_id, campaign_id, run_date) 范围内连续
+async function getNextListIndex(merchantId, campaignId, runDate) {
   const rows = await supabase("GET", "laboe_send_batches", {
-    query: `?select=sender_profile&merchant_id=eq.${encodeURIComponent(merchantId)}&run_date=eq.${encodeURIComponent(runDate)}`,
+    query: `?select=sender_profile&merchant_id=eq.${encodeURIComponent(merchantId)}&campaign_id=eq.${encodeURIComponent(campaignId)}&run_date=eq.${encodeURIComponent(runDate)}`,
   });
   let maxIndex = 0;
   for (const row of rows || []) {
@@ -111,13 +124,13 @@ async function getNextListIndex(merchantId, runDate) {
 }
 
 function prepareRequestImport(parsed, ctx, listIndex, existingDayPhones, existingDayCount) {
-  const { merchantId, runDate, targetLeads } = ctx;
+  const { merchantId, campaignId, runDate, targetLeads } = ctx;
   const rawLeads = Array.isArray(parsed.newLeads) ? parsed.newLeads : Array.isArray(parsed.leads) ? parsed.leads : [];
   if (!rawLeads.length) throw new Error("Collector returned no leads.");
 
   const sourceLanes = Array.isArray(parsed.source_lanes) ? parsed.source_lanes : [];
   const profile = `WA${String(listIndex).padStart(2, "0")}`;
-  const batchId = `${merchantId}-${profile}-${runDate}`;
+  const batchId = `${merchantId}-${campaignId}-${profile}-${runDate}`;
 
   const freshLeads = rawLeads
     .filter((lead) => {
@@ -131,8 +144,9 @@ function prepareRequestImport(parsed, ctx, listIndex, existingDayPhones, existin
     const sequence = index + 1;
     const phone = String(lead.phone || "").replace(/\D/g, "");
     return {
-      id: `${merchantId}-${runDate}-${profile}-${String(sequence).padStart(3, "0")}-${phone}`,
+      id: `${merchantId}-${campaignId}-${runDate}-${profile}-${String(sequence).padStart(3, "0")}-${phone}`,
       merchant_id: merchantId,
+      campaign_id: campaignId,
       run_date: runDate,
       batch_id: batchId,
       sender_profile: profile,
@@ -169,6 +183,7 @@ function prepareRequestImport(parsed, ctx, listIndex, existingDayPhones, existin
   const batch = {
     id: batchId,
     merchant_id: merchantId,
+    campaign_id: campaignId,
     run_date: runDate,
     sender_profile: profile,
     title: `List ${listIndex} — ${runDate}`,
@@ -179,6 +194,7 @@ function prepareRequestImport(parsed, ctx, listIndex, existingDayPhones, existin
   return {
     collection: {
       merchant_id: merchantId,
+      campaign_id: campaignId,
       run_date: runDate,
       target_leads: targetLeads,
       ready_leads: leads.length,
@@ -194,7 +210,7 @@ function prepareRequestImport(parsed, ctx, listIndex, existingDayPhones, existin
   };
 }
 
-async function runCollector(runDate, targetLeads) {
+async function runCollector(runDate, targetLeads, campaignId) {
   // 测试钩子：设了 COLLECTOR_STUB_JSON 就直接读它，跳过真实抓取（生产不设此 env）
   if (process.env.COLLECTOR_STUB_JSON) {
     const parsed = JSON.parse(await fs.readFile(process.env.COLLECTOR_STUB_JSON, "utf8"));
@@ -203,8 +219,8 @@ async function runCollector(runDate, targetLeads) {
   }
   const { stdout, stderr } = await execFileAsync(
     "node",
-    ["scripts/laboe_collect_google_maps_leads.mjs", runDate, String(targetLeads)],
-    { maxBuffer: 120 * 1024 * 1024 },
+    ["scripts/laboe_collect_google_maps_leads.mjs", runDate, String(targetLeads), campaignId],
+    { maxBuffer: 120 * 1024 * 1024, env: { ...process.env, CAMPAIGN_ID: campaignId } },
   );
   if (stderr) console.error(stderr);
   console.log(stdout);
@@ -230,14 +246,16 @@ async function main() {
   }
 
   const merchantId = request.merchant_id;
+  const campaignId = request.campaign_id || "design";
   const runDate = request.run_date;
   const searchRequestId = request.search_request_id;
   const targetLeads = await getMerchantTarget(merchantId, request.target_leads);
-  const ctx = { merchantId, runDate, targetLeads };
+  const ctx = { merchantId, campaignId, runDate, targetLeads };
 
   await setSearchStatus(searchRequestId, "processing");
   await upsertRun({
     merchant_id: merchantId,
+    campaign_id: campaignId,
     run_date: runDate,
     target_leads: targetLeads,
     mode: "Collection processing in GitHub Actions",
@@ -245,25 +263,28 @@ async function main() {
   });
 
   try {
-    const existingLeads = await fetchAllExistingLeads();
+    const existingLeads = await fetchExistingCampaignLeads(campaignId);
     await writeSupabaseHistoryFile(existingLeads);
     // 同日同商户已有的 phone（用于 list 编号续号 + assigned 计数）；全局去重由 history 文件负责
     const existingDayLeads = existingLeads.filter(
-      (row) => String(row.merchant_id) === String(merchantId) && String(row.run_date) === String(runDate),
+      (row) => String(row.merchant_id) === String(merchantId)
+        && String(row.campaign_id || "design") === String(campaignId)
+        && String(row.run_date) === String(runDate),
     );
     const existingDayPhones = new Set(existingDayLeads.map((row) => String(row.phone || "").replace(/\D/g, "")).filter(Boolean));
 
-    const collectorJson = await runCollector(runDate, targetLeads);
-    const listIndex = await getNextListIndex(merchantId, runDate);
+    const collectorJson = await runCollector(runDate, targetLeads, campaignId);
+    const listIndex = await getNextListIndex(merchantId, campaignId, runDate);
     const prepared = prepareRequestImport(collectorJson, ctx, listIndex, existingDayPhones, existingDayLeads.length);
     await upsertRun(prepared.collection);
     await upsertRows("laboe_send_batches", prepared.batches, "id");
     await upsertRows("laboe_leads", prepared.leads, "id");
     await setSearchStatus(searchRequestId, "completed", { result_count: prepared.leads.length });
-    console.log(`Added ${prepared.leads.length} new leads for ${merchantId}/${runDate} (${prepared.batches[0].title}).`);
+    console.log(`Added ${prepared.leads.length} new leads for ${merchantId}/${campaignId}/${runDate} (${prepared.batches[0].title}).`);
   } catch (error) {
     await upsertRun({
       merchant_id: merchantId,
+      campaign_id: campaignId,
       run_date: runDate,
       target_leads: targetLeads,
       mode: "Collection failed in GitHub Actions",

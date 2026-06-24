@@ -86,8 +86,19 @@ Deno.serve(async (request) => {
     // 2) 参数（count 用商户预设，不让前端选）
     const body = await request.json().catch(() => ({}));
     const collectionDate = String(body.collection_date || "").trim();
+    const campaignId = String(body.campaign_id || "design").trim().toLowerCase();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(collectionDate)) throw new Error("collection_date must be YYYY-MM-DD.");
+    if (!["design", "joymom"].includes(campaignId)) throw new Error("Unknown campaign_id.");
     const targetLeads = String(merchant.target_leads || 100);
+
+    const campaignLookup = await fetch(
+      `${supabaseUrl}/rest/v1/laboe_campaigns?select=campaign_id,status&merchant_id=eq.${encodeURIComponent(merchantId)}&campaign_id=eq.${encodeURIComponent(campaignId)}&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    );
+    const campaigns = await campaignLookup.json();
+    if (!Array.isArray(campaigns) || !campaigns[0] || campaigns[0].status !== "active") {
+      throw new Error("Campaign is not available.");
+    }
 
     // 3) 建 search_request（权威记录，merchant_id 来自 JWT，不信前端）
     const srRes = await fetch(`${supabaseUrl}/rest/v1/laboe_search_requests`, {
@@ -95,6 +106,7 @@ Deno.serve(async (request) => {
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json", Prefer: "return=representation" },
       body: JSON.stringify({
         merchant_id: merchantId,
+        campaign_id: campaignId,
         run_date: collectionDate,
         target_leads: Number(targetLeads),
         status: "requested",
@@ -129,6 +141,7 @@ Deno.serve(async (request) => {
             collection_date: collectionDate,
             target_leads: targetLeads,
             merchant_id: merchantId,
+            campaign_id: campaignId,
             search_request_id: String(searchRequestId || ""),
           },
         }),
@@ -150,6 +163,7 @@ Deno.serve(async (request) => {
     return json({
       ok: true,
       merchant_id: merchantId,
+      campaign_id: campaignId,
       collection_date: collectionDate,
       target_leads: Number(targetLeads),
       search_request_id: searchRequestId,

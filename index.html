@@ -27,6 +27,21 @@
     .nav-toggle, .nav-close { display:none; }
     .nav-logout { display:none; }
     .nav-list { display:flex; flex-direction:column; }
+    .campaign-picker { padding:0 0 14px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,.14); }
+    .campaign-picker label { display:block; color:#9fb7b0; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin:0 0 7px 4px; }
+    .campaign-picker select {
+      width:100%;
+      min-width:0;
+      padding-right:34px;
+      background:#183730;
+      color:#fff;
+      border:1px solid #31574d;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .campaign-kicker { display:block; color:var(--muted); font-size:13px; margin-top:4px; }
     .nav-item.active, .nav-item:hover { background:#1a3f37; color:#fff; }
     .content { padding:24px; max-width:1420px; width:100%; }
     .page-header { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:18px; }
@@ -47,7 +62,7 @@
     .list-toolbar { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line); }
     .back-button { min-width:132px; }
     .pill { display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--line); padding:6px 10px; background:#fff; color:#475569; font-size:13px; }
-    .metric-grid { display:grid; grid-template-columns:repeat(5,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
+    .metric-grid { display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)); gap:12px; margin-bottom:16px; }
     .metric, .panel, .lead-card, .list-card { background:#fff; border:1px solid var(--line); border-radius:8px; box-shadow:0 1px 3px rgba(15,23,42,.05); }
     .metric { padding:14px; }
     .metric span { display:block; color:var(--muted); font-size:12px; margin-bottom:5px; }
@@ -73,7 +88,10 @@
     .status-chip { display:inline-flex; width:max-content; align-items:center; border-radius:999px; padding:5px 9px; background:#eef2ff; color:#334155; font-size:12px; font-weight:700; }
     .status-chip[data-status="sent"] { background:#e8f1ff; color:#1d4ed8; }
     .status-chip[data-status="replied"] { background:var(--green-soft); color:var(--green); }
-    .status-chip[data-status="bad"], .status-chip[data-status="skip"] { background:var(--red-soft); color:var(--red); }
+    .status-chip[data-status="catalogue_sent"] { background:#fef3c7; color:#92400e; }
+    .status-chip[data-status="quoted"] { background:#ede9fe; color:#6d28d9; }
+    .status-chip[data-status="ordered"] { background:#dcfce7; color:#166534; }
+    .status-chip[data-status="bad"], .status-chip[data-status="skip"], .status-chip[data-status="not_interested"] { background:var(--red-soft); color:var(--red); }
     .progress { height:8px; border-radius:999px; overflow:hidden; background:#e5eaf1; }
     .progress i { display:block; height:100%; background:var(--brand); }
     .collection-progress { margin-top:12px; padding:12px; border-radius:8px; background:rgba(255,255,255,.72); border:1px solid rgba(100,116,139,.25); }
@@ -270,6 +288,13 @@
         <button id="nav-toggle" class="nav-toggle" type="button" aria-label="Open menu">☰</button>
         <button id="nav-close" class="nav-close" type="button" aria-label="Close menu">✕</button>
       </div>
+      <div class="campaign-picker">
+        <label for="campaign-select">Campaign</label>
+        <select id="campaign-select">
+          <option value="design">🎨 Laboe Design</option>
+          <option value="joymom">🥮 Joymom Mooncake</option>
+        </select>
+      </div>
       <nav class="nav-list">
         <button class="nav-item" data-view="guide">Guide <span class="must-read">Must Read</span></button>
         <button class="nav-item active" data-view="home">Home</button>
@@ -289,7 +314,8 @@
       </div>
       <header class="page-header">
         <div id="page-title">
-          <h1>Lead Dashboard</h1>
+          <h1 id="campaign-title">Lead Dashboard</h1>
+          <span id="campaign-kicker" class="campaign-kicker"></span>
         </div>
         <div class="top-actions">
           <button id="plan-pill" class="pill" type="button" title="View plans / upgrade">Plan</button>
@@ -299,8 +325,8 @@
       </header>
 
       <section class="identity-strip">
-        <label>Your name<input id="sender-name" placeholder="e.g. Jane"></label>
-        <label>Company / Position<input id="sender-company" placeholder="e.g. Jane Studio / Freelance Designer"></label>
+        <label><span id="sender-name-label">Your name</span><input id="sender-name" placeholder="e.g. Jane"></label>
+        <label><span id="sender-company-label">Company / Position</span><input id="sender-company" placeholder="e.g. Jane Studio / Freelance Designer"></label>
         <button id="save-identity" class="primary" type="button">Save identity</button>
         <span id="identity-saved" style="font-size:12px;color:#166534;"></span>
       </section>
@@ -324,7 +350,7 @@
           </div>
           <a class="guide-cta-btn" href="https://wa.me/601135113149" target="_blank" rel="noopener">💬 Contact Support</a>
         </div>
-        <div class="panel guide-content">
+        <div id="design-guide" class="panel guide-content">
         <div class="panel-head">
           <div>
             <h2>📈 How to Close Sales <span class="must-read">Must Read</span></h2>
@@ -387,16 +413,44 @@ I can also just send a few relevant sample works for your reference, and you can
           </div>
         </div>
         </div>
+        <div id="joymom-guide" class="panel guide-content hidden">
+          <div class="panel-head">
+            <div>
+              <h2>🥮 Joymom Mooncake B2B Sales Guide</h2>
+              <p>Keep the first contact short. Confirm interest before sharing the catalogue.</p>
+            </div>
+          </div>
+          <div class="guide-steps">
+            <div class="step-card"><div class="step-num">1</div><div class="step-body"><b>Send the opener</b><p>Introduce Jeff and Joymom Cookies, then ask whether the company is preparing mooncakes this year.</p></div></div>
+            <div class="step-card"><div class="step-num">2</div><div class="step-body"><b>They reply</b><p>Send the current catalogue and mark Catalogue Sent.</p></div></div>
+            <div class="step-card"><div class="step-num">3</div><div class="step-body"><b>Confirm quantity</b><p>Ask roughly how many boxes they need before preparing pricing.</p></div></div>
+            <div class="step-card"><div class="step-num">4</div><div class="step-body"><b>Send quotation</b><p>Mark Quoted after sending the confirmed package and pricing.</p></div></div>
+            <div class="step-card"><div class="step-num">5</div><div class="step-body"><b>Follow up simply</b><p>One polite follow-up is enough. Keep the conversation natural and Malaysian.</p></div></div>
+            <div class="step-card"><div class="step-num">6</div><div class="step-body"><b>Order confirmed</b><p>Mark Ordered so conversion stays clear.</p></div></div>
+          </div>
+          <div class="guide-block">
+            <h3>Opening message</h3>
+            <div class="guide-msg">
+              <div class="guide-msg-head"><b>Joymom corporate opener</b><button class="guide-copy" type="button" data-copy="joymom-msg">Copy</button></div>
+              <p id="joymom-msg">Hi, good day. &#x6211;&#x662F; Jeff&#xFF0C;Joymom Cookies &#x6708;&#x997C;&#x8FD9;&#x8FB9;&#x7684;&#x9500;&#x552E;&#x3002;
+
+&#x60F3;&#x8BF7;&#x95EE;&#x8D35;&#x516C;&#x53F8;&#x4ECA;&#x5E74;&#x6709;&#x51C6;&#x5907;&#x6708;&#x997C;&#x9001;&#x5BA2;&#x6237;&#x6216;&#x5458;&#x5DE5;&#x5417;&#xFF1F;
+
+&#x5982;&#x679C;&#x6709;&#x9700;&#x8981;&#xFF0C;&#x6211;&#x53EF;&#x4EE5;&#x53D1; catalogue &#x548C; corporate package &#x7ED9;&#x4F60;&#x53C2;&#x8003; &#x1F60A;</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="home-view" class="view shell">
         <div class="main-column">
           <section class="metric-grid">
-            <div class="metric"><span>Total Leads</span><strong id="metric-total">0</strong></div>
-            <div class="metric"><span>Sent</span><strong id="metric-sent">0</strong></div>
-            <div class="metric" data-metric-status="replied" title="Click to view replied leads"><span>Replied</span><strong id="metric-replied">0</strong></div>
-            <div class="metric" data-metric-status="bad_skip" title="Click to view bad / skipped leads"><span>Bad / Skip</span><strong id="metric-bad">0</strong></div>
-            <div class="metric"><span>Completed Lists</span><strong id="metric-complete">0/0</strong></div>
+            <div class="metric"><span id="metric-label-total">Total Leads</span><strong id="metric-total">0</strong></div>
+            <div class="metric" data-metric-status="sent"><span id="metric-label-sent">Sent</span><strong id="metric-sent">0</strong></div>
+            <div class="metric" data-metric-status="replied"><span id="metric-label-replied">Replied</span><strong id="metric-replied">0</strong></div>
+            <div class="metric" id="metric-card-four" data-metric-status="bad_skip"><span id="metric-label-four">Bad / Skip</span><strong id="metric-four">0</strong></div>
+            <div class="metric" id="metric-card-five"><span id="metric-label-five">Completed Lists</span><strong id="metric-five">0/0</strong></div>
+            <div class="metric hidden" id="metric-card-six"><span id="metric-label-six">Orders</span><strong id="metric-six">0</strong></div>
           </section>
           <section class="panel">
             <div class="panel-head">
@@ -427,8 +481,8 @@ I can also just send a few relevant sample works for your reference, and you can
             </div>
             <div class="lead-info">
               <h3>📋 How your lead list is built</h3>
-              <p>Each batch (~100 leads) across all Malaysia, focused on visual-driven retail SMEs most likely to need branding, graphic, web design, marketing &amp; more.</p>
-              <ul class="lead-mix">
+              <p id="lead-info-summary">Each batch (~100 leads) across all Malaysia, focused on visual-driven retail SMEs most likely to need branding, graphic, web design, marketing &amp; more.</p>
+              <ul id="design-lead-mix" class="lead-mix">
                 <li><span>Beauty / skincare / cosmetics</span><b>~25%</b></li>
                 <li><span>Home / living / decor</span><b>~20%</b></li>
                 <li><span>Fashion / apparel / boutique</span><b>~18%</b></li>
@@ -436,7 +490,15 @@ I can also just send a few relevant sample works for your reference, and you can
                 <li><span>Jewelry / watches / accessories</span><b>~15%</b></li>
                 <li><span>Events / wedding / gifting</span><b>~7%</b></li>
               </ul>
-              <p class="lead-info-foot">Plus a small mix of caf&eacute;/bakery, florist, electronics, pet &amp; fitness. Every lead is a WhatsApp-ready mobile number, <b>deduped</b> — you won't get a business that was recently collected by anyone. We skip clinics, salons, workshops, auto &amp; industrial.</p>
+              <ul id="joymom-lead-mix" class="lead-mix hidden">
+                <li><span>Manufacturing / industrial</span><b>~25%</b></li>
+                <li><span>Trading / wholesale / distribution</span><b>~20%</b></li>
+                <li><span>Construction / property / home</span><b>~15%</b></li>
+                <li><span>Professional / finance / corporate</span><b>~15%</b></li>
+                <li><span>Logistics / automotive</span><b>~10%</b></li>
+                <li><span>Education / healthcare / hospitality</span><b>~15%</b></li>
+              </ul>
+              <p id="lead-info-foot" class="lead-info-foot">Plus a small mix of caf&eacute;/bakery, florist, electronics, pet &amp; fitness. Every lead is a WhatsApp-ready mobile number, <b>deduped</b> — you won't get a business that was recently collected by anyone. We skip clinics, salons, workshops, auto &amp; industrial.</p>
             </div>
           </section>
         </aside>
@@ -542,11 +604,29 @@ I can also just send a few relevant sample works for your reference, and you can
     let myMerchantId = null;
     let senderName = "";
     let companyName = "";
+    let legacySenderName = "";
+    let legacyCompanyName = "";
+    let campaigns = [];
+    let activeCampaignId = localStorage.getItem("laboe-active-campaign") || "design";
     let myTier = "none";
     let mySubStatus = null;
     let myCap = null;
     let myTrialUsed = false;
     const TIER_NAMES = { none: "No plan", tier1: "Basic", tier2: "Pro", tier3: "Max", unlimited: "Unlimited", owner: "Owner" };
+    const CAMPAIGN_UI = {
+      design: {
+        title: "Laboe Design Services",
+        kicker: "Branding, design, website and marketing lead campaign",
+        sender: "Jeff",
+        company: "Laboe Studio",
+      },
+      joymom: {
+        title: "Joymom Mooncake B2B",
+        kicker: "Corporate mooncake orders · Mid-Autumn 2026",
+        sender: "Jeff",
+        company: "Joymom Cookies",
+      },
+    };
 
     const $ = (id) => document.getElementById(id);
     const setText = (id, v) => { const e = $(id); if (e) e.textContent = v; };
@@ -592,6 +672,12 @@ I can also just send a few relevant sample works for your reference, and you can
         leads = Array.isArray(seed.leads) ? seed.leads : [];
       } catch (e) {}
       myMerchantId = "PREVIEW"; myTier = "none"; myCap = null;
+      campaigns = [
+        { campaign_id: "design", name: "Laboe Design Services", brand_name: "Laboe Studio", sender_name: "Jeff" },
+        { campaign_id: "joymom", name: "Joymom Mooncake B2B", brand_name: "Joymom Cookies", sender_name: "Jeff" },
+      ];
+      applyActiveCampaign();
+      applyPreviewCampaignData();
       normalizeDateRange();
       $("date-start").value = startDate;
       $("date-end").value = currentDate;
@@ -617,9 +703,93 @@ I can also just send a few relevant sample works for your reference, and you can
       $("login").classList.add("hidden");
       $("app").classList.remove("hidden");
       $("user-pill").textContent = session.user.email || session.user.id;
+      $("campaign-select").value = activeCampaignId;
+      applyCampaignUi();
       normalizeDateRange();
       $("date-start").value = startDate;
       $("date-end").value = currentDate;
+    }
+
+    function applyPreviewCampaignData() {
+      if (activeCampaignId === "design") {
+        collectionRun = seedData.collection || null;
+        batches = seedData.batch ? [seedData.batch] : [];
+        leads = Array.isArray(seedData.leads) ? seedData.leads.map((lead) => ({ ...lead, campaign_id: "design" })) : [];
+        return;
+      }
+      const runDate = currentDate;
+      const batchId = "PREVIEW-joymom-WA01-" + runDate;
+      const samples = [
+        ["Eastern Precision Manufacturing", "manufacturing / industrial", "60123456781", "sent"],
+        ["Heng Lee Trading Sdn. Bhd.", "trading / wholesale / distribution", "60123456782", "replied"],
+        ["Vista Property Group", "construction / property / home", "60123456783", "catalogue_sent"],
+        ["Lim & Partners Advisory", "professional / finance / corporate", "60123456784", "quoted"],
+        ["Metro Logistics Malaysia", "logistics / automotive", "60123456785", "ordered"],
+        ["Bright Future Learning Centre", "education / healthcare", "60123456786", "pending"],
+      ];
+      leads = samples.map((row, index) => ({
+        id: "preview-joymom-" + index,
+        merchant_id: "PREVIEW",
+        campaign_id: "joymom",
+        run_date: runDate,
+        batch_id: batchId,
+        sender_profile: "WA01",
+        sender_sequence: index + 1,
+        business_name: row[0],
+        industry: row[1],
+        phone: row[2],
+        google_maps_url: "#",
+        whatsapp_click_to_send_link: "https://wa.me/" + row[2],
+        suggested_opening_message: "Hi, good day. \u6211\u662F {{SENDER}}\uFF0C{{COMPANY}} \u6708\u997C\u8FD9\u8FB9\u7684\u9500\u552E\u3002\n\n\u60F3\u8BF7\u95EE\u8D35\u516C\u53F8\u4ECA\u5E74\u6709\u51C6\u5907\u6708\u997C\u9001\u5BA2\u6237\u6216\u5458\u5DE5\u5417\uFF1F\n\n\u5982\u679C\u6709\u9700\u8981\uFF0C\u6211\u53EF\u4EE5\u53D1 catalogue \u548C corporate package \u7ED9\u4F60\u53C2\u8003 \uD83D\uDE0A",
+        observed_design_need: "Potential fit for Joymom corporate mooncake orders; confirm interest before sharing the catalogue.",
+        send_status: row[3],
+      }));
+      batches = [{ id: batchId, campaign_id: "joymom", run_date: runDate, sender_profile: "WA01", title: "Joymom List 1 — " + runDate, status: "open" }];
+      collectionRun = { campaign_id: "joymom", run_date: runDate, target_leads: 100, ready_leads: 6, assigned_leads: 6, mode: "Collection completed by preview" };
+    }
+
+    function applyActiveCampaign() {
+      const defaults = CAMPAIGN_UI[activeCampaignId] || CAMPAIGN_UI.design;
+      const campaign = campaigns.find((item) => item.campaign_id === activeCampaignId);
+      senderName = (campaign && campaign.sender_name) || (activeCampaignId === "design" ? legacySenderName : "") || defaults.sender;
+      companyName = (campaign && campaign.brand_name) || (activeCampaignId === "design" ? legacyCompanyName : "") || defaults.company;
+      if ($("sender-name")) $("sender-name").value = senderName;
+      if ($("sender-company")) $("sender-company").value = companyName;
+      if ($("campaign-select")) $("campaign-select").value = activeCampaignId;
+      applyCampaignUi();
+    }
+
+    function applyCampaignUi() {
+      const joymom = activeCampaignId === "joymom";
+      const ui = CAMPAIGN_UI[activeCampaignId] || CAMPAIGN_UI.design;
+      setText("campaign-title", ui.title);
+      setText("campaign-kicker", ui.kicker);
+      setText("sender-name-label", joymom ? "Salesperson" : "Your name");
+      setText("sender-company-label", joymom ? "Mooncake brand" : "Company / Position");
+      $("sender-name").placeholder = joymom ? "Jeff" : "e.g. Jane";
+      $("sender-company").placeholder = joymom ? "Joymom Cookies" : "e.g. Jane Studio / Freelance Designer";
+      $("design-guide").classList.toggle("hidden", joymom);
+      $("joymom-guide").classList.toggle("hidden", !joymom);
+      $("design-lead-mix").classList.toggle("hidden", joymom);
+      $("joymom-lead-mix").classList.toggle("hidden", !joymom);
+      setText("lead-info-summary", joymom
+        ? "Each batch collects established Malaysian businesses that may place corporate mooncake orders."
+        : "Each batch (~100 leads) across all Malaysia, focused on visual-driven retail SMEs most likely to need branding, graphic, web design, marketing & more.");
+      $("lead-info-foot").innerHTML = joymom
+        ? 'Every lead has a WhatsApp-ready mobile number and is deduped within the <b>Joymom campaign for 90 days</b>. Design contacts are kept in a separate pool.'
+        : 'Plus a small mix of café/bakery, florist, electronics, pet & fitness. Every lead is WhatsApp-ready and <b>deduped within the Design campaign for 90 days</b>.';
+      $("status-filter").innerHTML = joymom
+        ? '<option value="all">All statuses</option><option value="pending">Pending</option><option value="sent">Sent</option><option value="replied">Replied</option><option value="catalogue_sent">Catalogue Sent</option><option value="quoted">Quoted</option><option value="ordered">Ordered</option><option value="not_interested">Not Interested</option><option value="bad">Bad Number</option><option value="skip">Skip</option><option value="bad_skip">Bad / Skip</option>'
+        : '<option value="all">All statuses</option><option value="pending">Pending</option><option value="sent">Sent</option><option value="replied">Replied</option><option value="bad">Bad Number</option><option value="skip">Skip</option><option value="bad_skip">Bad / Skip</option>';
+      setText("metric-label-four", joymom ? "Catalogue Sent" : "Bad / Skip");
+      setText("metric-label-five", joymom ? "Quoted" : "Completed Lists");
+      setText("metric-label-six", "Orders");
+      $("metric-card-four").dataset.metricStatus = joymom ? "catalogue_sent" : "bad_skip";
+      if (joymom) $("metric-card-five").dataset.metricStatus = "quoted";
+      else delete $("metric-card-five").dataset.metricStatus;
+      $("metric-card-six").dataset.metricStatus = "ordered";
+      $("metric-card-six").classList.toggle("hidden", !joymom);
+      $("home-start-collection").textContent = joymom ? "Start Joymom Collection (100 leads)" : "Start Design Collection (100 leads)";
     }
 
     $("date-start").addEventListener("change", async (event) => {
@@ -663,6 +833,7 @@ I can also just send a few relevant sample works for your reference, and you can
       if (!document.body.classList.contains("preview")) return;
       const nav = e.target.closest("[data-view]");
       if (nav && (nav.dataset.view === "home" || nav.dataset.view === "guide")) return;
+      if (e.target.closest("[data-open-batch], .metric[data-metric-status], #back-home, #campaign-select")) return;
       const act = e.target.closest("button, [data-view], #plan-pill");
       if (!act || act.closest("#preview-banner")) return;
       e.preventDefault(); e.stopPropagation();
@@ -694,11 +865,38 @@ I can also just send a few relevant sample works for your reference, and you can
     $("status-filter").addEventListener("change", renderLeads);
     $("reply-search").addEventListener("input", renderReplySearch);
     $("home-start-collection").addEventListener("click", requestCollectionRun);
+    $("campaign-select").addEventListener("change", async (event) => {
+      activeCampaignId = event.target.value === "joymom" ? "joymom" : "design";
+      localStorage.setItem("laboe-active-campaign", activeCampaignId);
+      activeListBatchId = "";
+      applyActiveCampaign();
+      if (document.body.classList.contains("preview")) {
+        applyPreviewCampaignData();
+        render();
+      } else {
+        await loadAll();
+      }
+      showView("home");
+    });
     $("save-identity").addEventListener("click", async () => {
       if (!myMerchantId) { $("identity-saved").textContent = "No merchant linked."; return; }
       senderName = $("sender-name").value.trim();
       companyName = $("sender-company").value.trim();
-      const { error } = await client.from("laboe_merchant_settings").upsert({ merchant_id: myMerchantId, sender_name: senderName, company_name: companyName }, { onConflict: "merchant_id" });
+      if (document.body.classList.contains("preview")) {
+        $("identity-saved").textContent = "Preview only";
+        renderLeads();
+        return;
+      }
+      const { error } = await client.from("laboe_campaigns")
+        .update({ sender_name: senderName, brand_name: companyName })
+        .eq("merchant_id", myMerchantId)
+        .eq("campaign_id", activeCampaignId);
+      if (!error && activeCampaignId === "design") {
+        await client.from("laboe_merchant_settings").upsert(
+          { merchant_id: myMerchantId, sender_name: senderName, company_name: companyName },
+          { onConflict: "merchant_id" },
+        );
+      }
       $("identity-saved").textContent = error ? ("Save failed: " + error.message) : "Saved ✓";
       if (!error) renderLeads();
     });
@@ -836,6 +1034,7 @@ I can also just send a few relevant sample works for your reference, and you can
           body: {
             collection_date: targetDate,
             target_leads: 100,
+            campaign_id: activeCampaignId,
           },
         });
         if (error) return { ok: false, message: error.message || "Function invoke failed" };
@@ -871,10 +1070,24 @@ I can also just send a few relevant sample works for your reference, and you can
       myMerchantId = mu && mu.merchant_id ? mu.merchant_id : null;
       if (!myMerchantId) return;
       const { data: s } = await client.from("laboe_merchant_settings").select("sender_name,company_name").eq("merchant_id", myMerchantId).maybeSingle();
-      senderName = s && s.sender_name ? s.sender_name : "";
-      companyName = s && s.company_name ? s.company_name : "";
-      if ($("sender-name")) $("sender-name").value = senderName;
-      if ($("sender-company")) $("sender-company").value = companyName;
+      legacySenderName = s && s.sender_name ? s.sender_name : "";
+      legacyCompanyName = s && s.company_name ? s.company_name : "";
+    }
+
+    async function loadCampaigns() {
+      if (!myMerchantId || document.body.classList.contains("preview")) return;
+      const { data, error } = await client.from("laboe_campaigns")
+        .select("campaign_id,name,brand_name,sender_name,description,status,sort_order")
+        .eq("merchant_id", myMerchantId)
+        .eq("status", "active")
+        .order("sort_order");
+      if (error) {
+        showLoadError(error);
+        return;
+      }
+      campaigns = data || [];
+      if (!campaigns.some((item) => item.campaign_id === activeCampaignId)) activeCampaignId = "design";
+      applyActiveCampaign();
     }
 
     async function renderPlan() {
@@ -940,11 +1153,12 @@ I can also just send a few relevant sample works for your reference, and you can
 
     async function loadAll() {
       await loadIdentity();
+      await loadCampaigns();
       normalizeDateRange();
       const [runRes, batchRes, leadRes] = await Promise.all([
-        client.from("laboe_collection_runs").select("*").eq("merchant_id", myMerchantId).eq("run_date", currentDate).maybeSingle(),
-        client.from("laboe_send_batches").select("*").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile"),
-        client.from("laboe_leads").select("id,run_date,batch_id,sender_profile,sender_sequence,business_name,industry,phone,google_maps_url,suggested_opening_message,observed_design_need,whatsapp_click_to_send_link,send_status,merchant_id").eq("merchant_id", myMerchantId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
+        client.from("laboe_collection_runs").select("*").eq("merchant_id", myMerchantId).eq("campaign_id", activeCampaignId).eq("run_date", currentDate).maybeSingle(),
+        client.from("laboe_send_batches").select("*").eq("merchant_id", myMerchantId).eq("campaign_id", activeCampaignId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile"),
+        client.from("laboe_leads").select("id,campaign_id,run_date,batch_id,sender_profile,sender_sequence,business_name,industry,phone,google_maps_url,suggested_opening_message,observed_design_need,whatsapp_click_to_send_link,send_status,send_notes,merchant_id").eq("merchant_id", myMerchantId).eq("campaign_id", activeCampaignId).gte("run_date", startDate).lte("run_date", currentDate).order("run_date", { ascending: false }).order("sender_profile").order("sender_sequence"),
       ]);
       if (runRes.error) return showLoadError(runRes.error);
       if (batchRes.error) return showLoadError(batchRes.error);
@@ -1126,8 +1340,15 @@ I can also just send a few relevant sample works for your reference, and you can
       $("metric-total").textContent = leads.length;
       $("metric-sent").textContent = sent;
       $("metric-replied").textContent = replied;
-      $("metric-bad").textContent = bad;
-      $("metric-complete").textContent = complete + "/" + batches.length;
+      if (activeCampaignId === "joymom") {
+        $("metric-four").textContent = leads.filter((lead) => lead.send_status === "catalogue_sent").length;
+        $("metric-five").textContent = leads.filter((lead) => lead.send_status === "quoted").length;
+        $("metric-six").textContent = leads.filter((lead) => lead.send_status === "ordered").length;
+      } else {
+        $("metric-four").textContent = bad;
+        $("metric-five").textContent = complete + "/" + batches.length;
+        $("metric-six").textContent = "0";
+      }
     }
 
     function renderCollection() {
@@ -1269,7 +1490,9 @@ I can also just send a few relevant sample works for your reference, and you can
           '<h3>' + safe(batch.title) + '</h3>' +
           '<div class="meta-row"><span>' + safe(batch.run_date) + '</span><span>' + safe(batch.sender_profile) + '</span><span>' + stats.total + ' leads</span></div>' +
           '<div class="progress"><i style="width:' + progress + '%"></i></div>' +
-          '<div class="meta-row"><span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span></div>' +
+          '<div class="meta-row">' + (activeCampaignId === "joymom"
+            ? '<span>Sent ' + stats.sent + '</span><span>Catalogue ' + stats.catalogue + '</span><span>Orders ' + stats.ordered + '</span>'
+            : '<span>Sent ' + stats.sent + '</span><span>Replied ' + stats.replied + '</span><span>Bad/Skip ' + stats.bad + '</span>') + '</div>' +
           '<button class="primary" data-open-profile="' + safe(batch.sender_profile) + '" data-open-batch="' + safe(batch.id) + '">Open List</button>' +
         '</article>';
       }).join("") : '<p class="empty">No lists in this date range. Adjust From / To, or click Start Collection for the To date.</p>';
@@ -1283,7 +1506,10 @@ I can also just send a few relevant sample works for your reference, and you can
         done,
         sent: rows.filter((lead) => lead.send_status === "sent").length,
         replied: rows.filter((lead) => lead.send_status === "replied").length,
-        bad: rows.filter((lead) => lead.send_status === "bad" || lead.send_status === "skip").length,
+        catalogue: rows.filter((lead) => lead.send_status === "catalogue_sent").length,
+        quoted: rows.filter((lead) => lead.send_status === "quoted").length,
+        ordered: rows.filter((lead) => lead.send_status === "ordered").length,
+        bad: rows.filter((lead) => ["bad", "skip", "not_interested"].includes(lead.send_status)).length,
         complete: rows.length > 0 && done === rows.length,
       };
     }
@@ -1337,6 +1563,18 @@ I can also just send a few relevant sample works for your reference, and you can
     }
 
     function renderLeadCard(lead) {
+      const statusActions = activeCampaignId === "joymom"
+        ? '<button data-status-update="sent">Sent</button>' +
+          '<button data-status-update="replied">Replied</button>' +
+          '<button data-status-update="catalogue_sent">Catalogue Sent</button>' +
+          '<button data-status-update="quoted">Quoted</button>' +
+          '<button data-status-update="ordered">Ordered</button>' +
+          '<button data-status-update="not_interested">Not Interested</button>' +
+          '<button data-status-update="bad">Bad Number</button>'
+        : '<button data-status-update="sent">Sent</button>' +
+          '<button data-status-update="replied">Replied</button>' +
+          '<button data-status-update="bad">Bad Number</button>' +
+          '<button data-status-update="skip">Skip</button>';
       return '<article class="lead-card" data-lead-id="' + safe(lead.id) + '">' +
         '<div class="lead-top">' +
           '<div class="lead-title"><h3>' + safe(lead.business_name) + '</h3><div class="meta-row"><span>' + safe(lead.sender_profile) + ' #' + safe(lead.sender_sequence) + '</span><span>' + safe(lead.phone) + '</span><span>' + safe(lead.industry) + '</span></div></div>' +
@@ -1346,27 +1584,23 @@ I can also just send a few relevant sample works for your reference, and you can
         '<textarea readonly>' + safe(messageFor(lead)) + '</textarea>' +
         '<div class="actions">' +
           '<a class="button primary" href="' + safe(waLink(lead)) + '" target="_blank" rel="noopener">Open WhatsApp</a>' +
-          '<button data-status-update="sent">Sent</button>' +
-          '<button data-status-update="replied">Replied</button>' +
-          '<button data-status-update="bad">Bad Number</button>' +
-          '<button data-status-update="skip">Skip</button>' +
+          statusActions +
           '<a class="button" href="' + safe(lead.google_maps_url || "#") + '" target="_blank" rel="noopener">Maps</a>' +
         '</div>' +
       '</article>';
     }
 
-    document.querySelectorAll("[data-metric-status]").forEach((card) => {
-      card.addEventListener("click", () => {
+    document.addEventListener("click", async (event) => {
+      const metricCard = event.target.closest(".metric[data-metric-status]");
+      if (metricCard) {
         activeListBatchId = "";
         $("lead-filter").value = "";
         $("profile-filter").value = "all";
-        $("status-filter").value = card.dataset.metricStatus;
+        $("status-filter").value = metricCard.dataset.metricStatus;
         showView("lists");
         renderLeads();
-      });
-    });
-
-    document.addEventListener("click", async (event) => {
+        return;
+      }
       const openButton = event.target.closest("[data-open-profile]");
       if (openButton) {
         activeListBatchId = openButton.dataset.openBatch || "";
@@ -1398,6 +1632,7 @@ I can also just send a few relevant sample works for your reference, and you can
       }
       await client.from("laboe_lead_status_events").insert({
         merchant_id: lead.merchant_id,
+        campaign_id: lead.campaign_id || activeCampaignId,
         lead_id: lead.id,
         run_date: lead.run_date,
         batch_id: lead.batch_id,
@@ -1411,7 +1646,18 @@ I can also just send a few relevant sample works for your reference, and you can
     }
 
     function label(status) {
-      return status === "sent" ? "Sent" : status === "replied" ? "Replied" : status === "bad" ? "Bad Number" : status === "skip" ? "Skipped" : "Pending";
+      const labels = {
+        pending: "Pending",
+        sent: "Sent",
+        replied: "Replied",
+        catalogue_sent: "Catalogue Sent",
+        quoted: "Quoted",
+        ordered: "Ordered",
+        not_interested: "Not Interested",
+        bad: "Bad Number",
+        skip: "Skipped",
+      };
+      return labels[status] || "Pending";
     }
 
     function safe(value) {

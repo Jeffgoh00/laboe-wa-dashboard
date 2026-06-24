@@ -83,8 +83,11 @@ Important: `GITHUB_TOKEN` belongs in Supabase Function secrets only. Do not put 
 5. Dashboard calls the Supabase Edge Function.
 6. The Edge Function triggers GitHub Actions immediately.
 7. Worker marks the request as processing.
-8. Worker collects 100 fresh leads, deduplicated against every lead already in Supabase plus the contact registry, and writes them into Supabase as one new list. Requesting again on the same date appends another list with the numbering continued.
+8. Worker collects 100 fresh leads using the selected campaign profile and its separate 90-day dedupe pool, then writes them into Supabase as one new list.
 9. The dashboard progress monitor updates, then Daily Lists shows the result.
+
+Run `migrations/16_campaigns.sql` before deploying this version. Campaign
+requests pass `CAMPAIGN_ID=design` or `CAMPAIGN_ID=joymom` into the worker.
 
 ## 5. Run Worker Manually
 
