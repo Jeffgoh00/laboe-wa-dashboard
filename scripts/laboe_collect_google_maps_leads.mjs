@@ -577,7 +577,7 @@ const messageFrameworks = [
 // 但不再进开场白本体 —— 开场白改为 15 条(5 框架 ×3 变体)轮替(stableIndex 按 lead 稳定取一条,同一 lead 永远同一条)。
 function buildMessage(name, industry, angle, seed = "") {
   if (campaignId === "joymom") {
-    return "Hi, good day. \u6211\u662F {{SENDER}}\uFF0C{{COMPANY}} \u6708\u997C\u8FD9\u8FB9\u7684\u9500\u552E\u3002\n\n\u60F3\u8BF7\u95EE\u8D35\u516C\u53F8\u4ECA\u5E74\u6709\u51C6\u5907\u6708\u997C\u9001\u5BA2\u6237\u6216\u5458\u5DE5\u5417\uFF1F\n\n\u5982\u679C\u6709\u9700\u8981\uFF0C\u6211\u53EF\u4EE5\u53D1 catalogue \u548C corporate package \u7ED9\u4F60\u53C2\u8003 \uD83D\uDE0A";
+    return "Hi, good day. 我是 {{SENDER}}，{{COMPANY}} 月饼这边的销售。\n\n想请问贵公司今年有准备月饼送客户或员工吗？\n\n如果有需要，我可以发 catalogue 和 corporate package 给你参考 😊";
   }
   const idx = stableIndex(`framework|${seed}|${name}`, messageFrameworks.length);
   return messageFrameworks[idx](name);
