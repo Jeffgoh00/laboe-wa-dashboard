@@ -488,6 +488,8 @@ function stableIndex(value, length) {
 const SERVICE_LINE =
   "websites, branding, social media content, video, animation, and SaaS systems";
 
+// 5 框架 × 3 措辞变体 = 15 条。6 项服务清单本身保持 canonical(单一 SERVICE_LINE),
+// 只变其周围动词/框架措辞 + 开场/为什么找你/soft ask,打散高频重复短语降批量判垃圾。
 const messageFrameworks = [
   // 1 · 具体观察式 —— 先夸一处方向
   (name) =>
@@ -495,34 +497,84 @@ const messageFrameworks = [
     `Came across ${name} — really like the direction you're building.\n\n` +
     `We help brands with ${SERVICE_LINE}.\n\n` +
     `Mind if I send over 2–3 relevant samples?`,
+  (name) =>
+    `Hi there, {{SENDER}} here from {{COMPANY}}, a creative studio based in Malaysia.\n\n` +
+    `Stumbled on ${name} and genuinely liked what you're doing.\n\n` +
+    `We work across ${SERVICE_LINE}.\n\n` +
+    `Okay if I drop a couple of relevant samples your way?`,
+  (name) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a KL creative studio.\n\n` +
+    `Been looking at ${name} — the brand has a really nice direction.\n\n` +
+    `We cover ${SERVICE_LINE}.\n\n` +
+    `Would it help if I shared 2–3 samples close to your space?`,
   // 2 · 价值先行式 —— 先给一个想法
   (name) =>
     `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
     `We're a Malaysia-based creative studio working on ${SERVICE_LINE}.\n\n` +
     `I had a quick idea for how ${name} could level up its online look without a full rebuild.\n\n` +
     `Happy to share the idea and a few samples if you're open?`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}, a creative studio in Malaysia.\n\n` +
+    `We handle ${SERVICE_LINE}.\n\n` +
+    `A small idea came to mind for how ${name} could sharpen its online presence without starting over.\n\n` +
+    `Want me to send the idea along with a few samples?`,
+  (name) =>
+    `Good day — this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We're a KL creative studio doing ${SERVICE_LINE}.\n\n` +
+    `I think there's an easy win to lift how ${name} looks online without a big revamp.\n\n` +
+    `Glad to walk you through it with a couple of samples, if that's useful?`,
   // 3 · 社会证明式 —— 先放同类案例
   (name) =>
     `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based creative studio.\n\n` +
     `We help brands with ${SERVICE_LINE}.\n\n` +
     `We've done this for a few local brands and it moved the needle — and I came across ${name} feeling it could benefit from the same.\n\n` +
     `Okay if I send a couple of those examples?`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}, a creative studio based in Malaysia.\n\n` +
+    `We cover ${SERVICE_LINE}.\n\n` +
+    `A few local brands we worked with saw a real lift — and ${name} feels like it'd benefit the same way.\n\n` +
+    `Mind if I share a couple of those examples?`,
+  (name) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a KL creative studio.\n\n` +
+    `We work across ${SERVICE_LINE}.\n\n` +
+    `We've helped similar local brands get noticeably stronger results, and ${name} came to mind.\n\n` +
+    `Happy to send a couple of examples if you'd like to see?`,
   // 4 · 提问式 —— 用问题开场
   (name) =>
     `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
     `We're a Malaysia-based creative studio doing ${SERVICE_LINE}.\n\n` +
     `Quick one — is ${name} planning to refresh its website or content this year?\n\n` +
     `If the timing's right, I'd love to share a few samples.`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}, a creative studio in Malaysia.\n\n` +
+    `We handle ${SERVICE_LINE}.\n\n` +
+    `Quick question — is ${name} looking to refresh its branding or online presence anytime soon?\n\n` +
+    `If it's on the cards, I'm happy to send a few samples.`,
+  (name) =>
+    `Good day — this is {{SENDER}} from {{COMPANY}}, a KL creative studio.\n\n` +
+    `We cover ${SERVICE_LINE}.\n\n` +
+    `Just curious — is updating the website or content something ${name} has in mind this year?\n\n` +
+    `If so, I'd be glad to share a few relevant samples.`,
   // 5 · 直给式 —— 零废话
   (name) =>
     `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based creative studio.\n\n` +
     `We do ${SERVICE_LINE} for brands like ${name}.\n\n` +
     `I came across you recently and thought some of our work might be a fit.\n\n` +
     `Would it be okay if I shared a few samples with you?`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}, a creative studio in Malaysia.\n\n` +
+    `We build ${SERVICE_LINE} for brands like ${name}.\n\n` +
+    `Came across you the other day and felt our work could be relevant.\n\n` +
+    `Mind if I send a few samples over?`,
+  (name) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a KL creative studio.\n\n` +
+    `We provide ${SERVICE_LINE} for brands like ${name}.\n\n` +
+    `Found you recently and thought there might be a good fit.\n\n` +
+    `Would it be alright if I shared some samples?`,
 ];
 
 // industry / angle 仍按 lead 存进 recommended_angle / observed_design_need 字段(portal 作 lead 元数据展示),
-// 但不再进开场白本体 —— 开场白改为 5 框架轮替(stableIndex 按 lead 稳定取一个,同一 lead 永远同一框架)。
+// 但不再进开场白本体 —— 开场白改为 15 条(5 框架 ×3 变体)轮替(stableIndex 按 lead 稳定取一条,同一 lead 永远同一条)。
 function buildMessage(name, industry, angle, seed = "") {
   if (campaignId === "joymom") {
     return "Hi, good day. \u6211\u662F {{SENDER}}\uFF0C{{COMPANY}} \u6708\u997C\u8FD9\u8FB9\u7684\u9500\u552E\u3002\n\n\u60F3\u8BF7\u95EE\u8D35\u516C\u53F8\u4ECA\u5E74\u6709\u51C6\u5907\u6708\u997C\u9001\u5BA2\u6237\u6216\u5458\u5DE5\u5417\uFF1F\n\n\u5982\u679C\u6709\u9700\u8981\uFF0C\u6211\u53EF\u4EE5\u53D1 catalogue \u548C corporate package \u7ED9\u4F60\u53C2\u8003 \uD83D\uDE0A";
