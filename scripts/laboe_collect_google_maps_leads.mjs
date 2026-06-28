@@ -483,31 +483,52 @@ function stableIndex(value, length) {
 }
 
 // {{SENDER}} / {{COMPANY}} 占位符 —— portal 渲染时替换成商户自填的名字/公司。
-const openingVariants = [
-  `Hi, good day. I'm {{SENDER}} from {{COMPANY}}.`,
-  `Hello, I'm {{SENDER}} from {{COMPANY}}.`,
-  `Hi there, this is {{SENDER}} from {{COMPANY}}.`,
-  `Good day! {{SENDER}} here from {{COMPANY}}.`,
-  `Hi, {{SENDER}} reaching out from {{COMPANY}}.`,
+// 店名 {name} 在采集时烘进文案。每条用 \n\n 分 4 段(开场 / 服务 / 为什么找你 / soft ask);
+// portal segmentMessage 见到 \n 即原样返回(幂等),wa 链接 encodeURIComponent("\n")=%0A 认换行。
+const SERVICE_LINE =
+  "websites, branding, social media content, video, animation, and SaaS systems";
+
+const messageFrameworks = [
+  // 1 · 具体观察式 —— 先夸一处方向
+  (name) =>
+    `Hi, this is {{SENDER}} from {{COMPANY}}, a KL-based creative studio.\n\n` +
+    `Came across ${name} — really like the direction you're building.\n\n` +
+    `We help brands with ${SERVICE_LINE}.\n\n` +
+    `Mind if I send over 2–3 relevant samples?`,
+  // 2 · 价值先行式 —— 先给一个想法
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We're a Malaysia-based creative studio working on ${SERVICE_LINE}.\n\n` +
+    `I had a quick idea for how ${name} could level up its online look without a full rebuild.\n\n` +
+    `Happy to share the idea and a few samples if you're open?`,
+  // 3 · 社会证明式 —— 先放同类案例
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based creative studio.\n\n` +
+    `We help brands with ${SERVICE_LINE}.\n\n` +
+    `We've done this for a few local brands and it moved the needle — and I came across ${name} feeling it could benefit from the same.\n\n` +
+    `Okay if I send a couple of those examples?`,
+  // 4 · 提问式 —— 用问题开场
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We're a Malaysia-based creative studio doing ${SERVICE_LINE}.\n\n` +
+    `Quick one — is ${name} planning to refresh its website or content this year?\n\n` +
+    `If the timing's right, I'd love to share a few samples.`,
+  // 5 · 直给式 —— 零废话
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based creative studio.\n\n` +
+    `We do ${SERVICE_LINE} for brands like ${name}.\n\n` +
+    `I came across you recently and thought some of our work might be a fit.\n\n` +
+    `Would it be okay if I shared a few samples with you?`,
 ];
 
-const closingVariants = [
-  `If helpful, I can send a few relevant sample works first.`,
-  `If you're open to it, I'd be happy to share a few relevant samples first.`,
-  `Happy to send over a few sample works first if that's useful — no hard pitch.`,
-  `If it sounds relevant, I can share a few examples of our work first.`,
-  `Would it be okay if I sent a few relevant samples over first?`,
-];
-
+// industry / angle 仍按 lead 存进 recommended_angle / observed_design_need 字段(portal 作 lead 元数据展示),
+// 但不再进开场白本体 —— 开场白改为 5 框架轮替(stableIndex 按 lead 稳定取一个,同一 lead 永远同一框架)。
 function buildMessage(name, industry, angle, seed = "") {
   if (campaignId === "joymom") {
     return "Hi, good day. \u6211\u662F {{SENDER}}\uFF0C{{COMPANY}} \u6708\u997C\u8FD9\u8FB9\u7684\u9500\u552E\u3002\n\n\u60F3\u8BF7\u95EE\u8D35\u516C\u53F8\u4ECA\u5E74\u6709\u51C6\u5907\u6708\u997C\u9001\u5BA2\u6237\u6216\u5458\u5DE5\u5417\uFF1F\n\n\u5982\u679C\u6709\u9700\u8981\uFF0C\u6211\u53EF\u4EE5\u53D1 catalogue \u548C corporate package \u7ED9\u4F60\u53C2\u8003 \uD83D\uDE0A";
   }
-  const opening = openingVariants[stableIndex(`open|${seed}|${name}`, openingVariants.length)];
-  const closing = closingVariants[stableIndex(`close|${seed}|${industry}|${name}`, closingVariants.length)];
-  const industryPhrase = industry === "other visual-driven SME" ? "brand" : industry;
-  const middle = `I came across ${name} and felt your ${industryPhrase} visuals could be pushed further.`;
-  return `${opening} ${middle} ${angle} ${closing}`;
+  const idx = stableIndex(`framework|${seed}|${name}`, messageFrameworks.length);
+  return messageFrameworks[idx](name);
 }
 
 function isExcluded(row) {
