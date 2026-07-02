@@ -18,7 +18,7 @@
     button:disabled { opacity:.55; cursor:not-allowed; }
     input, select { width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; padding:10px 12px; min-height:40px; }
     textarea { width:100%; border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-height:92px; resize:vertical; color:#334155; background:#fbfdff; font-family:Inter, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif; }
-    .app { height:100vh; overflow:hidden; display:grid; grid-template-columns:232px 1fr; }
+    .app { min-height:100vh; display:grid; grid-template-columns:232px 1fr; }
     .sidebar { position:sticky; top:0; height:100vh; padding:20px 14px; background:#102520; color:#d9fff7; }
     .brand { font-size:20px; font-weight:800; margin:0 0 24px 8px; }
     .brand span { color:#83f4df; }
@@ -125,17 +125,9 @@
     .modal-backdrop:not(.hidden) .modal { animation: modalIn .22s ease; }
     .win-card { transition:box-shadow .15s ease, transform .15s ease; }
     .win-card:hover { box-shadow:0 8px 20px rgba(15,23,42,.08); transform:translateY(-2px); }
-    /* 固定视口：整页不滚，只 Daily Lists 内部滚 */
-    .content { height:100vh; overflow:hidden; display:flex; flex-direction:column; }
-    #home-view.shell { flex:1; min-height:0; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
-    #home-view .main-column { min-height:0; display:flex; flex-direction:column; }
-    #home-view .main-column > .panel { flex:1; min-height:0; display:flex; flex-direction:column; }
-    #home-lists { flex:1; min-height:0; overflow-y:auto; align-content:start; }
-    .right-rail { max-height:100%; overflow-y:auto; }
-    #result-view { flex:1; min-height:0; overflow-y:auto; }
-    #guide-view { flex:1; min-height:0; overflow-y:auto; }
-    #lists-view { flex:1; min-height:0; display:flex; flex-direction:column; }
-    #lists-view #lead-list { flex:1; min-height:0; overflow-y:auto; }
+    /* 整页滚动：内容自然增长，不再锁死每个模块内部滚动 */
+    .content { min-height:100vh; display:flex; flex-direction:column; }
+    #home-lists { align-content:start; }
     .guide-block { margin-bottom:18px; }
     .guide-block h3 { font-size:15px; color:var(--brand); margin:0 0 8px; }
     .guide-block ul, .guide-block ol { margin:0; padding-left:20px; }
