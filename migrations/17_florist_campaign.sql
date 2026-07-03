@@ -33,8 +33,8 @@ begin
   values
     (new.merchant_id, 'design', 'Laboe Design Services', 'Laboe Studio', null,
      'Branding, design, website and marketing service leads.', 10),
-    (new.merchant_id, 'florist', 'Laboe Florist Leads', 'Laboe Studio', null,
-     'Design, website and content leads from florists across Malaysia.', 20)
+    (new.merchant_id, 'florist', 'Laboe Celebration Leads', 'Laboe Studio', null,
+     'Ordering-site leads from florist, cake and balloon shops across Malaysia.', 20)
   on conflict (merchant_id, campaign_id) do nothing;
   return new;
 end;

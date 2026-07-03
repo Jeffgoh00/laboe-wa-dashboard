@@ -207,7 +207,7 @@ const designIndustryCaps = new Map([
   ["other visual-driven SME", 5],
 ]);
 
-// —— Florist campaign (2026-07-02)：全马只抓花店，其余管线与 design 完全一致 ——
+// —— Florist campaign (2026-07-02 → 07-03 扩为 3 类)：全马抓 花店 / 蛋糕 / 气球派对 三类，三平均，其余管线与 design 一致 ——
 const floristCities = [
   // 巴生谷核心
   "Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Klang", "Subang Jaya",
@@ -229,30 +229,32 @@ const floristCities = [
 ];
 
 const floristQueries = [
-  "florist",
-  "flower shop",
-  "flower delivery",
-  "florist gift shop",
-  "wedding florist",
-  "flower boutique",
-  "online florist",
-  "kedai bunga",
+  // 花店
+  "florist", "flower shop", "flower delivery", "florist gift shop", "wedding florist", "online florist", "kedai bunga",
+  // 蛋糕店 / 烘焙
+  "cake shop", "bakery", "birthday cake shop", "custom cake shop", "cake delivery", "dessert shop", "kedai kek",
+  // 气球 / 派对布置
+  "balloon shop", "balloon decoration", "party supplies shop", "party decoration", "helium balloon shop", "balloon delivery", "kedai belon",
 ];
 
 const floristSourceLanes = floristCities.flatMap((city) => floristQueries.map((query) => [query, city]));
 
-// 任何花店都收，只排明显不是花店零售的
+// 花店 / 蛋糕 / 气球三类 celebration 零售门店都收，只排明显不是零售门店的
 const floristExcludePatterns = [
   /\bnursery\b/i,
   /\blandscap/i,
   /\bgarden cent(re|er)\b/i,
   /\bhardware\b/i,
   /\bfuneral (home|parlour|parlor|services)\b/i,
-  /\bartificial flower (factory|manufacturer)\b/i,
+  /\bwholesale\b/i,
+  /\bingredient supplier\b/i,
 ];
 
+// 三类平均(≈100 条:34 / 33 / 33)
 const floristTargetQuotas = new Map([
-  ["florist / gifting / lifestyle retail", 100],
+  ["florist / flowers", 34],
+  ["cake / bakery", 33],
+  ["balloon / party", 33],
 ]);
 
 const floristIndustryCaps = new Map();
@@ -376,8 +378,13 @@ function waLink(phone, message) {
 
 function industryFrom(categoryText, queryText) {
   const text = `${categoryText} ${queryText}`.toLowerCase();
-  // florist campaign 里花店判定优先（否则 "wedding florist" lane 会先命中 event/wedding，破坏 100% 花店配额）
-  if (campaignId === "florist" && /florist|flower|bouquet|bunga/.test(text)) return "florist / gifting / lifestyle retail";
+  // florist campaign 分 3 桶(花店/蛋糕/气球)。queryText 里带 lane 关键词，足以判定；花店优先(wedding florist 才不落 event)。
+  if (campaignId === "florist") {
+    if (/florist|flower|bouquet|bunga/.test(text)) return "florist / flowers";
+    if (/cake|bakery|baker|dessert|pastry|patisserie|\bkek\b|bread/.test(text)) return "cake / bakery";
+    if (/balloon|belon|party|helium|decoration/.test(text)) return "balloon / party";
+    return "florist / flowers";
+  }
   if (/wedding|event|party|balloon|hamper|gift hamper/.test(text)) return "event / wedding / party / gifting";
   if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery|pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
   if (/pilates|yoga|dance|fitness|gym|studio/.test(text)) return "fitness / studio";
@@ -543,99 +550,108 @@ const messageFrameworks = [
     `Would it be alright if I shared some samples?`,
 ];
 
-// —— Florist campaign 专属开场白(2026-07-03)——
-// 卖点 = 帮花店做「在线目录 + 一键 WhatsApp 下单站」(Hanna Flower 那套),解决散乱私讯接单。
-// 同结构:4 段 \n\n(问候+身份 / 痛点或钩子 / 解法 / soft ask),{{SENDER}}/{{COMPANY}} 门户渲染时替换,店名烘进。
-// 5 框架 × 3 变体 = 15 条,stableIndex 轮替,打散重复短语降批量判垃圾。
+// —— Florist campaign 开场白(2026-07-03 扩为花店/蛋糕/气球通用)——
+// 卖点 = 帮店做「在线目录 + 一键 WhatsApp 下单站」(Hanna Flower 那套),解决散乱私讯接单。
+// 一套 15 条(5 框架 × 3 变体)按行业 vocab 自适应:同一条模版,花店说 bouquets、蛋糕说 cakes、气球说 balloon & party sets。
+// 4 段 \n\n(问候+身份 / 痛点或钩子 / 解法 / soft ask),{{SENDER}}/{{COMPANY}} 门户渲染时替换,店名烘进,stableIndex 轮替。
+const CELEBRATION_VOCAB = {
+  "florist / flowers": { product: "bouquets", niche: "florists", shop: "flower shop" },
+  "cake / bakery": { product: "cakes", niche: "cake shops", shop: "cake shop" },
+  "balloon / party": { product: "balloon & party sets", niche: "party shops", shop: "party shop" },
+};
+
 const floristMessageFrameworks = [
   // 1 · 痛点观察式 —— 先点散乱私讯接单的痛
-  (name) =>
-    `Hi, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based studio for florists.\n\n` +
-    `Came across ${name} — most flower shops still take every order through scattered WhatsApp and IG chats, and it's easy to lose one on a busy day.\n\n` +
-    `We set up a simple page where your customers browse the full range with prices and order in one tap on WhatsApp.\n\n` +
-    `We've got one live for a local florist — want me to send you her page to see it?`,
-  (name) =>
-    `Hi there, {{SENDER}} here from {{COMPANY}}, we build online shops for florists.\n\n` +
+  (name, v) =>
+    `Hi, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based studio for ${v.niche}.\n\n` +
+    `Came across ${name} — most ${v.shop}s still take every order through scattered WhatsApp and IG chats, and it's easy to lose one on a busy day.\n\n` +
+    `We set up a simple page where your customers browse your full range with prices and order in one tap on WhatsApp.\n\n` +
+    `We've got one live for a local ${v.shop} — want me to send you their page to see it?`,
+  (name, v) =>
+    `Hi there, {{SENDER}} here from {{COMPANY}}, we build online shops for ${v.niche}.\n\n` +
     `Noticed ${name} — when orders come in through DMs one by one, festive days get messy and some slip through.\n\n` +
     `We put your whole catalogue online so customers pick, see prices, and order straight to your WhatsApp — no back and forth.\n\n` +
-    `Okay if I share a live example we built for another florist?`,
-  (name) =>
-    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio that works with florists.\n\n` +
+    `Okay if I share a live example we built for another ${v.shop}?`,
+  (name, v) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio that works with ${v.niche}.\n\n` +
     `Had a look at ${name} — taking orders by chat means answering "got this? how much?" all day and still missing a few.\n\n` +
-    `We give you one clean page: every arrangement, every price, order in a tap on WhatsApp.\n\n` +
-    `Would it help if I sent you a florist page we've already got running?`,
+    `We give you one clean page: your full range, every price, order in a tap on WhatsApp.\n\n` +
+    `Would it help if I sent you a ${v.shop} page we've already got running?`,
   // 2 · 结果先行式 —— 先给一个具体好处
-  (name) =>
+  (name, v) =>
     `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `Quick idea for ${name}: imagine customers ordering your bouquets in one tap, even at midnight, without you replying to a single chat.\n\n` +
-    `That's what we build for florists — a clean online catalogue with prices that sends orders straight to your WhatsApp.\n\n` +
-    `One florist we set up now takes orders while she sleeps — want to see her page?`,
-  (name) =>
+    `Quick idea for ${name}: imagine customers ordering your ${v.product} in one tap, even at midnight, without you replying to a single chat.\n\n` +
+    `That's what we build for ${v.niche} — a clean online catalogue with prices that sends orders straight to your WhatsApp.\n\n` +
+    `One ${v.shop} we set up now takes orders while they sleep — want to see their page?`,
+  (name, v) =>
     `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
-    `What if ${name} could show every arrangement online and let customers order in one tap, instead of chasing DMs?\n\n` +
-    `We set that up for florists — browse, price, order to your WhatsApp, all on one page.\n\n` +
-    `Happy to send you a live florist page so you can see how it works?`,
-  (name) =>
+    `What if ${name} could show your whole range online and let customers order in one tap, instead of chasing DMs?\n\n` +
+    `We set that up for ${v.niche} — browse, price, order to your WhatsApp, all on one page.\n\n` +
+    `Happy to send you a live ${v.shop} page so you can see how it works?`,
+  (name, v) =>
     `Good day — {{SENDER}} from {{COMPANY}} here.\n\n` +
     `Small idea for ${name}: a page where customers see your full range, know the price, and order in a tap — orders keep coming even when you're closed.\n\n` +
-    `We build exactly that for flower shops, wired to your WhatsApp.\n\n` +
+    `We build exactly that for ${v.niche}, wired to your WhatsApp.\n\n` +
     `Want me to drop you a live example to look at?`,
-  // 3 · 案例/社会证明式 —— 先放实跑的花店样板
-  (name) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}, we build ordering pages for florists.\n\n` +
-    `We recently set one up for a local flower shop — customers browse the whole range and order directly, no more one-by-one DMs.\n\n` +
+  // 3 · 案例/社会证明式 —— 先放实跑的样板
+  (name, v) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, we build ordering pages for ${v.niche}.\n\n` +
+    `We recently set one up for a local ${v.shop} — customers browse the whole range and order directly, no more one-by-one DMs.\n\n` +
     `Came across ${name} and felt the same setup would fit you really well.\n\n` +
-    `Mind if I send you her live page to have a look?`,
-  (name) =>
+    `Mind if I send you their live page to have a look?`,
+  (name, v) =>
     `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `We built an online ordering page for a florist and her customers now pick and order in one tap — she's not glued to WhatsApp all day.\n\n` +
+    `We built an online ordering page for a ${v.shop} and their customers now pick and order in one tap — they're not glued to WhatsApp all day.\n\n` +
     `${name} came to mind as a shop that could run the same way.\n\n` +
     `Okay if I share the live example with you?`,
-  (name) =>
-    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio for florists.\n\n` +
-    `One flower shop we set up online now takes cleaner orders with far less back-and-forth — the page does the work.\n\n` +
+  (name, v) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio for ${v.niche}.\n\n` +
+    `One ${v.shop} we set up online now takes cleaner orders with far less back-and-forth — the page does the work.\n\n` +
     `Saw ${name} and thought it'd suit you too.\n\n` +
     `Happy to send you that live page if you'd like to see?`,
   // 4 · 提问式 —— 用问题开场
-  (name) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}, we make ordering pages for florists.\n\n` +
+  (name, v) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, we make ordering pages for ${v.niche}.\n\n` +
     `Quick one — how do customers order from ${name} now, mostly WhatsApp and Instagram?\n\n` +
     `We put your full catalogue online so they pick, see the price, and order in one tap — a big help on busy festive days.\n\n` +
-    `Happy to show you a live florist page we built, if you're keen?`,
-  (name) =>
+    `Happy to show you a live ${v.shop} page we built, if you're keen?`,
+  (name, v) =>
     `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
     `Curious — does ${name} take most orders through DMs right now?\n\n` +
     `If so, we can put everything on one page where customers order straight to your WhatsApp, so nothing gets missed.\n\n` +
-    `Want me to send a live example we set up for another florist?`,
-  (name) =>
+    `Want me to send a live example we set up for another ${v.shop}?`,
+  (name, v) =>
     `Good day — {{SENDER}} from {{COMPANY}} here.\n\n` +
-    `Just wondering how ${name} handles orders on peak days like Valentine's or Mother's Day?\n\n` +
-    `We build florists a simple ordering page so the rush runs itself — customers browse, price, and order in a tap.\n\n` +
-    `Glad to share a live florist page if that's useful?`,
+    `Just wondering how ${name} handles orders on peak days like Valentine's or the festive season?\n\n` +
+    `We build ${v.niche} a simple ordering page so the rush runs itself — customers browse, price, and order in a tap.\n\n` +
+    `Glad to share a live ${v.shop} page if that's useful?`,
   // 5 · 直给式 —— 零废话
-  (name) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia studio for florists.\n\n` +
-    `We build online ordering pages for flower shops like ${name} — full catalogue, prices, order in one tap on WhatsApp.\n\n` +
+  (name, v) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia studio for ${v.niche}.\n\n` +
+    `We build online ordering pages for ${v.shop}s like ${name} — full catalogue, prices, order in one tap on WhatsApp.\n\n` +
     `Came across you recently and thought it'd be a good fit.\n\n` +
-    `Would it be okay if I sent you a live florist page to see?`,
-  (name) =>
+    `Would it be okay if I sent you a live ${v.shop} page to see?`,
+  (name, v) =>
     `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `We set florists up with a clean online shop — customers browse every bouquet, see prices, and order straight to your WhatsApp.\n\n` +
+    `We set ${v.niche} up with a clean online shop — customers browse your full range, see prices, and order straight to your WhatsApp.\n\n` +
     `Found ${name} the other day and felt it could really work for you.\n\n` +
     `Mind if I send a live example over?`,
-  (name) =>
+  (name, v) =>
     `Good day! This is {{SENDER}} from {{COMPANY}}.\n\n` +
-    `We give flower shops like ${name} one page to sell from — full range, prices, one-tap WhatsApp ordering.\n\n` +
+    `We give ${v.shop}s like ${name} one page to sell from — full range, prices, one-tap WhatsApp ordering.\n\n` +
     `Came across you and thought there's a good fit here.\n\n` +
-    `Alright if I share a florist page we've got live?`,
+    `Alright if I share a ${v.shop} page we've got live?`,
 ];
 
-// industry / angle 仍按 lead 存进 recommended_angle / observed_design_need 字段(portal 作 lead 元数据展示),
-// 但不再进开场白本体 —— design 用 messageFrameworks、florist 用 floristMessageFrameworks,各 15 条轮替。
+// design 用 messageFrameworks;florist campaign 用 floristMessageFrameworks + 按 industry 取 vocab(花店/蛋糕/气球自适应)。
 function buildMessage(name, industry, angle, seed = "") {
-  const pool = campaignId === "florist" ? floristMessageFrameworks : messageFrameworks;
-  const idx = stableIndex(`framework|${seed}|${name}`, pool.length);
-  return pool[idx](name);
+  if (campaignId === "florist") {
+    const v = CELEBRATION_VOCAB[industry] || CELEBRATION_VOCAB["florist / flowers"];
+    const idx = stableIndex(`framework|${seed}|${name}`, floristMessageFrameworks.length);
+    return floristMessageFrameworks[idx](name, v);
+  }
+  const idx = stableIndex(`framework|${seed}|${name}`, messageFrameworks.length);
+  return messageFrameworks[idx](name);
 }
 
 function isExcluded(row) {
