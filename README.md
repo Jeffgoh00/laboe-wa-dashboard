@@ -21,7 +21,10 @@ This folder is ready for GitHub Pages hosting.
 The dashboard currently includes:
 
 - `design` — Laboe Design Services
-- `joymom` — Joymom Mooncake B2B
+- `florist` — Laboe Florist Leads (florists/flower shops only, all Malaysia)
+
+Retired: `joymom` (Joymom Mooncake B2B) — archived 2026-07-02; historical
+joymom leads remain in the database but the campaign can no longer run.
 
 Use the Campaign selector in the left sidebar to switch. Leads, daily lists,
 collection runs, messages, statuses, and 90-day deduplication are isolated by

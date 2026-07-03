@@ -86,8 +86,9 @@ Important: `GITHUB_TOKEN` belongs in Supabase Function secrets only. Do not put 
 8. Worker collects 100 fresh leads using the selected campaign profile and its separate 90-day dedupe pool, then writes them into Supabase as one new list.
 9. The dashboard progress monitor updates, then Daily Lists shows the result.
 
-Run `migrations/16_campaigns.sql` before deploying this version. Campaign
-requests pass `CAMPAIGN_ID=design` or `CAMPAIGN_ID=joymom` into the worker.
+Run `migrations/16_campaigns.sql` and `migrations/17_florist_campaign.sql`
+before deploying this version. Campaign requests pass `CAMPAIGN_ID=design`
+or `CAMPAIGN_ID=florist` into the worker.
 
 ## 5. Run Worker Manually
 

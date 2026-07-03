@@ -12,7 +12,7 @@ const registryPath = path.join(leadSystemDir, "data", "contact_registry.json");
 const date = process.argv[2] || new Date().toISOString().slice(0, 10);
 const targetCount = Number(process.argv[3] ?? "100");
 const campaignId = String(process.argv[4] || process.env.CAMPAIGN_ID || "design").toLowerCase();
-if (!["design", "joymom"].includes(campaignId)) throw new Error(`Unsupported campaign: ${campaignId}`);
+if (!["design", "florist"].includes(campaignId)) throw new Error(`Unsupported campaign: ${campaignId}`);
 const rebuildFromJson = process.argv.includes("--from-json");
 const outputBaseName = `${campaignId}-${date}-google-maps-fresh-leads`;
 
@@ -212,64 +212,61 @@ const designIndustryCaps = new Map([
   ["other visual-driven SME", 5],
 ]);
 
-const joymomCities = [
+// —— Florist campaign (2026-07-02)：全马只抓花店，其余管线与 design 完全一致 ——
+const floristCities = [
+  // 巴生谷核心
   "Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Klang", "Subang Jaya",
   "Puchong", "Cheras", "Kajang", "Bangi", "Rawang", "Selayang",
-  "Seremban", "Melaka", "Johor Bahru", "Batu Pahat", "Muar", "Kluang",
-  "Ipoh", "Taiping", "George Town", "Butterworth", "Bukit Mertajam",
-  "Alor Setar", "Sungai Petani", "Kuantan", "Kota Kinabalu", "Kuching",
+  "Ampang", "Mont Kiara", "Bangsar", "Kepong", "Setapak", "Wangsa Maju",
+  "Kota Damansara", "Setia Alam", "Sri Petaling", "Bukit Jalil", "Cyberjaya",
+  "Putrajaya", "Sungai Buloh", "Seri Kembangan", "USJ", "Semenyih", "Banting",
+  // 北马
+  "George Town", "Bayan Lepas", "Butterworth", "Bukit Mertajam", "Seberang Jaya",
+  "Alor Setar", "Sungai Petani", "Ipoh", "Taiping", "Sitiawan", "Teluk Intan", "Kangar",
+  // 南马
+  "Seremban", "Nilai", "Port Dickson", "Melaka", "Ayer Keroh",
+  "Johor Bahru", "Iskandar Puteri", "Skudai", "Kulai", "Bukit Indah",
+  "Batu Pahat", "Muar", "Kluang", "Segamat", "Pontian",
+  // 东海岸
+  "Kuantan", "Temerloh", "Bentong", "Kota Bharu", "Kuala Terengganu",
+  // 东马
+  "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Miri", "Sibu", "Bintulu",
 ];
 
-const joymomQueries = [
-  "manufacturing company", "factory", "engineering company", "construction company",
-  "property developer", "hardware supplier", "building materials supplier",
-  "trading company", "wholesaler", "distributor", "logistics company",
-  "transport company", "freight forwarding company", "car dealer",
-  "furniture company", "electrical appliance company", "accounting firm",
-  "law firm", "insurance agency", "financial consultant", "corporate secretarial firm",
-  "private school", "tuition centre", "medical centre", "hotel",
-  "event company", "corporate gift supplier", "hamper gift shop",
+const floristQueries = [
+  "florist",
+  "flower shop",
+  "flower delivery",
+  "florist gift shop",
+  "wedding florist",
+  "flower boutique",
+  "online florist",
+  "kedai bunga",
 ];
 
-const joymomSourceLanes = joymomCities.flatMap((city) => joymomQueries.map((query) => [query, city]));
+const floristSourceLanes = floristCities.flatMap((city) => floristQueries.map((query) => [query, city]));
 
-const joymomExcludePatterns = [
-  /\bsalon\b/i,
-  /\bbarber\b/i,
-  /\bnail\b/i,
-  /\bspa\b/i,
-  /\bpet shop\b/i,
-  /\brestaurant\b/i,
-  /\bcafe\b/i,
-  /\bfood stall\b/i,
-  /\bwarung\b/i,
-  /\bhome based\b/i,
-  /\bfreelance\b/i,
-  /\bgovernment\b/i,
-  /\bministry\b/i,
-  /\bpolice\b/i,
-  /\bpublic university\b/i,
+// 任何花店都收，只排明显不是花店零售的
+const floristExcludePatterns = [
+  /\bnursery\b/i,
+  /\blandscap/i,
+  /\bgarden cent(re|er)\b/i,
+  /\bhardware\b/i,
+  /\bfuneral (home|parlour|parlor|services)\b/i,
+  /\bartificial flower (factory|manufacturer)\b/i,
 ];
 
-const joymomTargetQuotas = new Map([
-  ["manufacturing / industrial", 25],
-  ["trading / wholesale / distribution", 20],
-  ["construction / property / home", 15],
-  ["professional / finance / corporate", 15],
-  ["logistics / automotive", 10],
-  ["education / healthcare", 8],
-  ["hospitality / gifting / events", 7],
+const floristTargetQuotas = new Map([
+  ["florist / gifting / lifestyle retail", 100],
 ]);
 
-const joymomIndustryCaps = new Map([
-  ["other business", 10],
-]);
+const floristIndustryCaps = new Map();
 
-const sourceLanes = campaignId === "joymom" ? joymomSourceLanes : designSourceLanes;
-const excludePatterns = campaignId === "joymom" ? joymomExcludePatterns : designExcludePatterns;
-const malayNamePatterns = campaignId === "joymom" ? [] : designMalayNamePatterns;
-const targetQuotas = campaignId === "joymom" ? joymomTargetQuotas : designTargetQuotas;
-const industryCaps = campaignId === "joymom" ? joymomIndustryCaps : designIndustryCaps;
+const sourceLanes = campaignId === "florist" ? floristSourceLanes : designSourceLanes;
+const excludePatterns = campaignId === "florist" ? floristExcludePatterns : designExcludePatterns;
+const malayNamePatterns = campaignId === "florist" ? [] : designMalayNamePatterns;
+const targetQuotas = campaignId === "florist" ? floristTargetQuotas : designTargetQuotas;
+const industryCaps = campaignId === "florist" ? floristIndustryCaps : designIndustryCaps;
 
 const columns = [
   "date",
@@ -384,16 +381,8 @@ function waLink(phone, message) {
 
 function industryFrom(categoryText, queryText) {
   const text = `${categoryText} ${queryText}`.toLowerCase();
-  if (campaignId === "joymom") {
-    if (/manufactur|factory|industrial|engineering|machinery/.test(text)) return "manufacturing / industrial";
-    if (/trading|wholesale|wholesaler|distribut|supplier|import|export/.test(text)) return "trading / wholesale / distribution";
-    if (/construct|contractor|property|developer|building material|hardware|furniture|electrical appliance/.test(text)) return "construction / property / home";
-    if (/account|law firm|legal|insurance|financial|secretarial|consultant|corporate service/.test(text)) return "professional / finance / corporate";
-    if (/logistic|transport|freight|forwarding|automotive|car dealer/.test(text)) return "logistics / automotive";
-    if (/school|tuition|education|medical|clinic|healthcare/.test(text)) return "education / healthcare";
-    if (/hotel|event|gift|hamper/.test(text)) return "hospitality / gifting / events";
-    return "other business";
-  }
+  // florist campaign 里花店判定优先（否则 "wedding florist" lane 会先命中 event/wedding，破坏 100% 花店配额）
+  if (campaignId === "florist" && /florist|flower|bouquet|bunga/.test(text)) return "florist / gifting / lifestyle retail";
   if (/wedding|event|party|balloon|hamper|gift hamper/.test(text)) return "event / wedding / party / gifting";
   if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery|pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
   if (/pilates|yoga|dance|fitness|gym|studio/.test(text)) return "fitness / studio";
@@ -409,19 +398,6 @@ function industryFrom(categoryText, queryText) {
 }
 
 function buildAngle(industry, name) {
-  if (campaignId === "joymom") {
-    const reasons = {
-      "manufacturing / industrial": "has a sizeable business operation and may place festive orders for company relationships or team appreciation",
-      "trading / wholesale / distribution": "works with many customers and business partners, making it a relevant corporate gifting prospect",
-      "construction / property / home": "is relationship-driven and may prepare festive gifts for clients, partners or its team",
-      "professional / finance / corporate": "serves business clients and may use festive gifting to maintain those relationships",
-      "logistics / automotive": "has recurring corporate relationships and a potentially sizeable team",
-      "education / healthcare": "has an established organisation and may prepare festive gifts for staff or partners",
-      "hospitality / gifting / events": "already operates around hospitality or gifting and may be suitable for direct orders or collaboration",
-      "other business": "appears to be an established Malaysian business with possible corporate gifting needs",
-    };
-    return `${name} ${reasons[industry] || reasons["other business"]}.`;
-  }
   if (industry === "beauty / skincare / cosmetics") {
     return `${name} already has a product-led retail presence, and stronger product visuals, launch creatives, and short-form social content could make the brand look more premium online.`;
   }
@@ -459,7 +435,6 @@ function buildAngle(industry, name) {
 }
 
 function buildObservedNeed(industry) {
-  if (campaignId === "joymom") return "Potential fit for Joymom corporate mooncake orders; confirm interest before sharing the catalogue.";
   if (industry === "restaurant / cafe / bakery") return "Food/product visuals and promo content need to look appetizing and consistent across Maps/social.";
   if (industry === "beauty / skincare / cosmetics") return "Product and retail visuals need a more premium, campaign-ready look.";
   if (industry === "home / living / decor") return "Catalog and lifestyle visuals need clearer styling to show product value.";
@@ -576,9 +551,6 @@ const messageFrameworks = [
 // industry / angle 仍按 lead 存进 recommended_angle / observed_design_need 字段(portal 作 lead 元数据展示),
 // 但不再进开场白本体 —— 开场白改为 15 条(5 框架 ×3 变体)轮替(stableIndex 按 lead 稳定取一条,同一 lead 永远同一条)。
 function buildMessage(name, industry, angle, seed = "") {
-  if (campaignId === "joymom") {
-    return "Hi, good day. 我是 {{SENDER}}，{{COMPANY}} 月饼这边的销售。\n\n想请问贵公司今年有准备月饼送客户或员工吗？\n\n如果有需要，我可以发 catalogue 和 corporate package 给你参考 😊";
-  }
   const idx = stableIndex(`framework|${seed}|${name}`, messageFrameworks.length);
   return messageFrameworks[idx](name);
 }
@@ -593,7 +565,7 @@ function isExcluded(row) {
   ].filter(Boolean).join(" ");
   if (excludePatterns.some((pattern) => pattern.test(haystack))) return true;
   if (malayNamePatterns.some((pattern) => pattern.test(row.business_name || ""))) return true;
-  if (reviewCountNumber(row.reviews) > (campaignId === "joymom" ? 5000 : 2000)) return true;
+  if (reviewCountNumber(row.reviews) > 2000) return true;
   return false;
 }
 

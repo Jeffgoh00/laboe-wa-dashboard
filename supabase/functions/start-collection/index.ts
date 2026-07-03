@@ -88,7 +88,7 @@ Deno.serve(async (request) => {
     const collectionDate = String(body.collection_date || "").trim();
     const campaignId = String(body.campaign_id || "design").trim().toLowerCase();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(collectionDate)) throw new Error("collection_date must be YYYY-MM-DD.");
-    if (!["design", "joymom"].includes(campaignId)) throw new Error("Unknown campaign_id.");
+    if (!["design", "florist"].includes(campaignId)) throw new Error("Unknown campaign_id.");
     const targetLeads = String(merchant.target_leads || 100);
 
     const campaignLookup = await fetch(

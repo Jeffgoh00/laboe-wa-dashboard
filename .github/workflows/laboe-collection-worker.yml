@@ -13,6 +13,9 @@ on:
       merchant_id:
         description: "Merchant to assign leads to. Blank = worker picks oldest pending search_request."
         required: false
+      campaign_id:
+        description: "Campaign to collect for (design | florist). Blank = design."
+        required: false
       search_request_id:
         description: "search_requests row id to mark complete. Optional."
         required: false
@@ -46,6 +49,7 @@ jobs:
           COLLECTION_DATE: ${{ github.event.inputs.collection_date }}
           TARGET_LEADS: ${{ github.event.inputs.target_leads }}
           MERCHANT_ID: ${{ github.event.inputs.merchant_id }}
+          CAMPAIGN_ID: ${{ github.event.inputs.campaign_id }}
           SEARCH_REQUEST_ID: ${{ github.event.inputs.search_request_id }}
         run: |
           export TARGET_LEADS="${TARGET_LEADS:-100}"
