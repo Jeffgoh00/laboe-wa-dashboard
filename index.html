@@ -695,8 +695,10 @@ I can also just send a few relevant sample works for your reference, and you can
         ["Festive Balloons Studio", "balloon / party", "60123456786", "replied"],
       ];
       const PV_SHOP = { "florist / flowers": "flower shop", "cake / bakery": "cake shop", "balloon / party": "party shop" };
+      const PV_PRODUCT = { "florist / flowers": "flowers", "cake / bakery": "cakes", "balloon / party": "balloons" };
       leads = samples.map((row, index) => {
         const shop = PV_SHOP[row[1]] || "shop";
+        const product = PV_PRODUCT[row[1]] || "products";
         return {
         id: "preview-florist-" + index,
         merchant_id: "PREVIEW",
@@ -710,7 +712,7 @@ I can also just send a few relevant sample works for your reference, and you can
         phone: row[2],
         google_maps_url: "#",
         whatsapp_click_to_send_link: "https://wa.me/" + row[2],
-        suggested_opening_message: "Hi, {{SENDER}} here from {{COMPANY}}, a Malaysia-based studio for " + shop + "s.\n\nMost " + shop + "s still take every order through scattered WhatsApp and IG chats, and it's easy to lose one on a busy day.\n\nWe set " + row[0] + " up with a simple page where customers browse your full range with prices and order in one tap on WhatsApp.\n\nWe've got one live for a local " + shop + " — want me to send you their page to see it?",
+        suggested_opening_message: "Hi " + row[0] + " 👋 {{SENDER}} here from {{COMPANY}}.\n\nWe specially built an online order page for " + shop + "s — it shows all your " + product + " nicely, and customers can pick what they want and send the full order to your WhatsApp in one message.\n\nSo you reply less and save time. We've got one live for a local " + shop + " — want the link to see?",
         observed_design_need: "Order-taking is scattered across WhatsApp/IG; a one-page catalogue would tidy it up.",
         send_status: row[3],
       };

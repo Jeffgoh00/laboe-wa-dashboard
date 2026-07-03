@@ -561,97 +561,65 @@ const messageFrameworks = [
     `Would it be alright if I shared some samples?`,
 ];
 
-// —— Florist campaign 开场白(2026-07-03 扩为花店/蛋糕/气球通用)——
-// 卖点 = 帮店做「在线目录 + 一键 WhatsApp 下单站」(Hanna Flower 那套),解决散乱私讯接单。
-// 一套 15 条(5 框架 × 3 变体)按行业 vocab 自适应:同一条模版,花店说 bouquets、蛋糕说 cakes、气球说 balloon & party sets。
-// 4 段 \n\n(问候+身份 / 痛点或钩子 / 解法 / soft ask),{{SENDER}}/{{COMPANY}} 门户渲染时替换,店名烘进,stableIndex 轮替。
+// —— Florist(=Celebration)campaign 开场白(2026-07-03 简化版)——
+// 卖点 = 专门给这类店做的「产品展示 + 客户自助集单一次发 WhatsApp」下单页,省店主逐条回复客户的时间(Hanna Flower 那套)。
+// 简版·马来西亚口味:3 段短句、平白用词、社会证明基调。一套 12 条按 industry vocab 自适应(花店 flowers/flower shop、蛋糕 cakes/cake shop、气球 balloons/party shop)。
+// {{SENDER}}/{{COMPANY}} 门户渲染时替换,店名烘进,\n\n 分段,stableIndex 轮替(措辞打散降批量判垃圾)。
 const CELEBRATION_VOCAB = {
-  "florist / flowers": { product: "bouquets", niche: "florists", shop: "flower shop" },
+  "florist / flowers": { product: "flowers", niche: "florists", shop: "flower shop" },
   "cake / bakery": { product: "cakes", niche: "cake shops", shop: "cake shop" },
-  "balloon / party": { product: "balloon & party sets", niche: "party shops", shop: "party shop" },
+  "balloon / party": { product: "balloons", niche: "party shops", shop: "party shop" },
 };
 
 const floristMessageFrameworks = [
-  // 1 · 痛点观察式 —— 先点散乱私讯接单的痛
   (name, v) =>
-    `Hi, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based studio for ${v.niche}.\n\n` +
-    `Came across ${name} — most ${v.shop}s still take every order through scattered WhatsApp and IG chats, and it's easy to lose one on a busy day.\n\n` +
-    `We set up a simple page where your customers browse your full range with prices and order in one tap on WhatsApp.\n\n` +
-    `We've got one live for a local ${v.shop} — want me to send you their page to see it?`,
+    `Hi ${name} 👋 {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `We specially built an online order page for ${v.niche} — it shows all your ${v.product} nicely, and customers can pick what they want and send the full order to your WhatsApp in one message.\n\n` +
+    `So you reply less and save time. We've got one live for a local ${v.shop} — want the link to see?`,
   (name, v) =>
-    `Hi there, {{SENDER}} here from {{COMPANY}}, we build online shops for ${v.niche}.\n\n` +
-    `Noticed ${name} — when orders come in through DMs one by one, festive days get messy and some slip through.\n\n` +
-    `We put your whole catalogue online so customers pick, see prices, and order straight to your WhatsApp — no back and forth.\n\n` +
-    `Okay if I share a live example we built for another ${v.shop}?`,
+    `Hi 👋 this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We made a simple page just for ${v.niche}: your ${v.product} all displayed, and customers tick what they want — it comes to your WhatsApp as one neat order.\n\n` +
+    `Less answering one by one for you. We've done one for a real ${v.shop} already — okay if I send you the example?`,
   (name, v) =>
-    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio that works with ${v.niche}.\n\n` +
-    `Had a look at ${name} — taking orders by chat means answering "got this? how much?" all day and still missing a few.\n\n` +
-    `We give you one clean page: your full range, every price, order in a tap on WhatsApp.\n\n` +
-    `Would it help if I sent you a ${v.shop} page we've already got running?`,
-  // 2 · 结果先行式 —— 先给一个具体好处
+    `Hi ${name} 👋 {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We built a page specially for ${v.niche} — customers see all your ${v.product}, choose, and the whole order goes straight to your WhatsApp on its own.\n\n` +
+    `Saves you a lot of back-and-forth replying. Here's one we made for a local ${v.shop} — want me to send it over?`,
   (name, v) =>
-    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `Quick idea for ${name}: imagine customers ordering your ${v.product} in one tap, even at midnight, without you replying to a single chat.\n\n` +
-    `That's what we build for ${v.niche} — a clean online catalogue with prices that sends orders straight to your WhatsApp.\n\n` +
-    `One ${v.shop} we set up now takes orders while they sleep — want to see their page?`,
+    `Hi there 👋 this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We set up simple online order pages for ${v.niche} — all your ${v.product} on display, and customers add what they like and send you the full order on WhatsApp in one go.\n\n` +
+    `So you don't reply to every message one by one. We already made one for a local ${v.shop} — can I send you the link?`,
   (name, v) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
-    `What if ${name} could show your whole range online and let customers order in one tap, instead of chasing DMs?\n\n` +
-    `We set that up for ${v.niche} — browse, price, order to your WhatsApp, all on one page.\n\n` +
-    `Happy to send you a live ${v.shop} page so you can see how it works?`,
+    `Good day 👋 {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `We specially made an online page for ${v.niche} — it shows all your ${v.product}, and customers pick and send their whole order to your WhatsApp by themselves.\n\n` +
+    `Much less time replying for you. Got one running for a real ${v.shop} — want to have a look?`,
   (name, v) =>
-    `Good day — {{SENDER}} from {{COMPANY}} here.\n\n` +
-    `Small idea for ${name}: a page where customers see your full range, know the price, and order in a tap — orders keep coming even when you're closed.\n\n` +
-    `We build exactly that for ${v.niche}, wired to your WhatsApp.\n\n` +
-    `Want me to drop you a live example to look at?`,
-  // 3 · 案例/社会证明式 —— 先放实跑的样板
+    `Hi ${name} 👋 {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We help ${v.niche} with a simple order page — your ${v.product} all shown nicely, and customers choose and send the full order straight to your WhatsApp.\n\n` +
+    `So you spend less time answering one by one. We've got one live for a ${v.shop} already — okay if I share it?`,
   (name, v) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}, we build ordering pages for ${v.niche}.\n\n` +
-    `We recently set one up for a local ${v.shop} — customers browse the whole range and order directly, no more one-by-one DMs.\n\n` +
-    `Came across ${name} and felt the same setup would fit you really well.\n\n` +
-    `Mind if I send you their live page to have a look?`,
+    `Hi 👋 this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We built something specially for ${v.niche}: one page that displays all your ${v.product}, where customers tick what they want and it arrives to your WhatsApp as one complete order.\n\n` +
+    `Less back-and-forth for you. Here's one we did for a local ${v.shop} — want the link?`,
   (name, v) =>
-    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `We built an online ordering page for a ${v.shop} and their customers now pick and order in one tap — they're not glued to WhatsApp all day.\n\n` +
-    `${name} came to mind as a shop that could run the same way.\n\n` +
-    `Okay if I share the live example with you?`,
+    `Hi ${name} 👋 {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `We made a simple online order page for ${v.niche} — customers see all your ${v.product} with prices, pick what they want, and send the whole order to your WhatsApp in one message.\n\n` +
+    `So you don't have to reply to each one. We've done one for a real ${v.shop} — can I send it over?`,
   (name, v) =>
-    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio for ${v.niche}.\n\n` +
-    `One ${v.shop} we set up online now takes cleaner orders with far less back-and-forth — the page does the work.\n\n` +
-    `Saw ${name} and thought it'd suit you too.\n\n` +
-    `Happy to send you that live page if you'd like to see?`,
-  // 4 · 提问式 —— 用问题开场
+    `Good day 👋 this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We set up an online page just for ${v.niche} — your ${v.product} all displayed, customers choose on their own and the full order comes to your WhatsApp automatically.\n\n` +
+    `Saves you a lot of replying time. Got one live for a local ${v.shop} — want to see?`,
   (name, v) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}, we make ordering pages for ${v.niche}.\n\n` +
-    `Quick one — how do customers order from ${name} now, mostly WhatsApp and Instagram?\n\n` +
-    `We put your full catalogue online so they pick, see the price, and order in one tap — a big help on busy festive days.\n\n` +
-    `Happy to show you a live ${v.shop} page we built, if you're keen?`,
+    `Hi ${name} 👋 {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We specially built an order page for ${v.niche} — shows all your ${v.product}, and customers put together their whole order and send it to your WhatsApp in one go.\n\n` +
+    `So you reply far less. We already set one up for a ${v.shop} — okay if I send you the example?`,
   (name, v) =>
-    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `Curious — does ${name} take most orders through DMs right now?\n\n` +
-    `If so, we can put everything on one page where customers order straight to your WhatsApp, so nothing gets missed.\n\n` +
-    `Want me to send a live example we set up for another ${v.shop}?`,
+    `Hi there 👋 {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `We made a simple page for ${v.niche} that shows all your ${v.product}, and lets customers pick and send their full order to your WhatsApp themselves.\n\n` +
+    `Less time answering customers one by one. Here's one we built for a local ${v.shop} — want me to send it?`,
   (name, v) =>
-    `Good day — {{SENDER}} from {{COMPANY}} here.\n\n` +
-    `Just wondering how ${name} handles orders on peak days like Valentine's or the festive season?\n\n` +
-    `We build ${v.niche} a simple ordering page so the rush runs itself — customers browse, price, and order in a tap.\n\n` +
-    `Glad to share a live ${v.shop} page if that's useful?`,
-  // 5 · 直给式 —— 零废话
-  (name, v) =>
-    `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia studio for ${v.niche}.\n\n` +
-    `We build online ordering pages for ${v.shop}s like ${name} — full catalogue, prices, order in one tap on WhatsApp.\n\n` +
-    `Came across you recently and thought it'd be a good fit.\n\n` +
-    `Would it be okay if I sent you a live ${v.shop} page to see?`,
-  (name, v) =>
-    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
-    `We set ${v.niche} up with a clean online shop — customers browse your full range, see prices, and order straight to your WhatsApp.\n\n` +
-    `Found ${name} the other day and felt it could really work for you.\n\n` +
-    `Mind if I send a live example over?`,
-  (name, v) =>
-    `Good day! This is {{SENDER}} from {{COMPANY}}.\n\n` +
-    `We give ${v.shop}s like ${name} one page to sell from — full range, prices, one-tap WhatsApp ordering.\n\n` +
-    `Came across you and thought there's a good fit here.\n\n` +
-    `Alright if I share a ${v.shop} page we've got live?`,
+    `Hi 👋 this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We built an online order page specially for ${v.niche} — all your ${v.product} on show, customers choose and it comes to your WhatsApp as one neat order.\n\n` +
+    `So you spend less time on replies. We've got one live for a real ${v.shop} — want the link to have a look?`,
 ];
 
 // design 用 messageFrameworks;florist campaign 用 floristMessageFrameworks + 按 industry 取 vocab(花店/蛋糕/气球自适应)。
