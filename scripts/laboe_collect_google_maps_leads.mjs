@@ -543,11 +543,99 @@ const messageFrameworks = [
     `Would it be alright if I shared some samples?`,
 ];
 
+// —— Florist campaign 专属开场白(2026-07-03)——
+// 卖点 = 帮花店做「在线目录 + 一键 WhatsApp 下单站」(Hanna Flower 那套),解决散乱私讯接单。
+// 同结构:4 段 \n\n(问候+身份 / 痛点或钩子 / 解法 / soft ask),{{SENDER}}/{{COMPANY}} 门户渲染时替换,店名烘进。
+// 5 框架 × 3 变体 = 15 条,stableIndex 轮替,打散重复短语降批量判垃圾。
+const floristMessageFrameworks = [
+  // 1 · 痛点观察式 —— 先点散乱私讯接单的痛
+  (name) =>
+    `Hi, this is {{SENDER}} from {{COMPANY}}, a Malaysia-based studio for florists.\n\n` +
+    `Came across ${name} — most flower shops still take every order through scattered WhatsApp and IG chats, and it's easy to lose one on a busy day.\n\n` +
+    `We set up a simple page where your customers browse the full range with prices and order in one tap on WhatsApp.\n\n` +
+    `We've got one live for a local florist — want me to send you her page to see it?`,
+  (name) =>
+    `Hi there, {{SENDER}} here from {{COMPANY}}, we build online shops for florists.\n\n` +
+    `Noticed ${name} — when orders come in through DMs one by one, festive days get messy and some slip through.\n\n` +
+    `We put your whole catalogue online so customers pick, see prices, and order straight to your WhatsApp — no back and forth.\n\n` +
+    `Okay if I share a live example we built for another florist?`,
+  (name) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio that works with florists.\n\n` +
+    `Had a look at ${name} — taking orders by chat means answering "got this? how much?" all day and still missing a few.\n\n` +
+    `We give you one clean page: every arrangement, every price, order in a tap on WhatsApp.\n\n` +
+    `Would it help if I sent you a florist page we've already got running?`,
+  // 2 · 结果先行式 —— 先给一个具体好处
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `Quick idea for ${name}: imagine customers ordering your bouquets in one tap, even at midnight, without you replying to a single chat.\n\n` +
+    `That's what we build for florists — a clean online catalogue with prices that sends orders straight to your WhatsApp.\n\n` +
+    `One florist we set up now takes orders while she sleeps — want to see her page?`,
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `What if ${name} could show every arrangement online and let customers order in one tap, instead of chasing DMs?\n\n` +
+    `We set that up for florists — browse, price, order to your WhatsApp, all on one page.\n\n` +
+    `Happy to send you a live florist page so you can see how it works?`,
+  (name) =>
+    `Good day — {{SENDER}} from {{COMPANY}} here.\n\n` +
+    `Small idea for ${name}: a page where customers see your full range, know the price, and order in a tap — orders keep coming even when you're closed.\n\n` +
+    `We build exactly that for flower shops, wired to your WhatsApp.\n\n` +
+    `Want me to drop you a live example to look at?`,
+  // 3 · 案例/社会证明式 —— 先放实跑的花店样板
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, we build ordering pages for florists.\n\n` +
+    `We recently set one up for a local flower shop — customers browse the whole range and order directly, no more one-by-one DMs.\n\n` +
+    `Came across ${name} and felt the same setup would fit you really well.\n\n` +
+    `Mind if I send you her live page to have a look?`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `We built an online ordering page for a florist and her customers now pick and order in one tap — she's not glued to WhatsApp all day.\n\n` +
+    `${name} came to mind as a shop that could run the same way.\n\n` +
+    `Okay if I share the live example with you?`,
+  (name) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}, a studio for florists.\n\n` +
+    `One flower shop we set up online now takes cleaner orders with far less back-and-forth — the page does the work.\n\n` +
+    `Saw ${name} and thought it'd suit you too.\n\n` +
+    `Happy to send you that live page if you'd like to see?`,
+  // 4 · 提问式 —— 用问题开场
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, we make ordering pages for florists.\n\n` +
+    `Quick one — how do customers order from ${name} now, mostly WhatsApp and Instagram?\n\n` +
+    `We put your full catalogue online so they pick, see the price, and order in one tap — a big help on busy festive days.\n\n` +
+    `Happy to show you a live florist page we built, if you're keen?`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `Curious — does ${name} take most orders through DMs right now?\n\n` +
+    `If so, we can put everything on one page where customers order straight to your WhatsApp, so nothing gets missed.\n\n` +
+    `Want me to send a live example we set up for another florist?`,
+  (name) =>
+    `Good day — {{SENDER}} from {{COMPANY}} here.\n\n` +
+    `Just wondering how ${name} handles orders on peak days like Valentine's or Mother's Day?\n\n` +
+    `We build florists a simple ordering page so the rush runs itself — customers browse, price, and order in a tap.\n\n` +
+    `Glad to share a live florist page if that's useful?`,
+  // 5 · 直给式 —— 零废话
+  (name) =>
+    `Hi there, this is {{SENDER}} from {{COMPANY}}, a Malaysia studio for florists.\n\n` +
+    `We build online ordering pages for flower shops like ${name} — full catalogue, prices, order in one tap on WhatsApp.\n\n` +
+    `Came across you recently and thought it'd be a good fit.\n\n` +
+    `Would it be okay if I sent you a live florist page to see?`,
+  (name) =>
+    `Hi, {{SENDER}} here from {{COMPANY}}.\n\n` +
+    `We set florists up with a clean online shop — customers browse every bouquet, see prices, and order straight to your WhatsApp.\n\n` +
+    `Found ${name} the other day and felt it could really work for you.\n\n` +
+    `Mind if I send a live example over?`,
+  (name) =>
+    `Good day! This is {{SENDER}} from {{COMPANY}}.\n\n` +
+    `We give flower shops like ${name} one page to sell from — full range, prices, one-tap WhatsApp ordering.\n\n` +
+    `Came across you and thought there's a good fit here.\n\n` +
+    `Alright if I share a florist page we've got live?`,
+];
+
 // industry / angle 仍按 lead 存进 recommended_angle / observed_design_need 字段(portal 作 lead 元数据展示),
-// 但不再进开场白本体 —— 开场白改为 15 条(5 框架 ×3 变体)轮替(stableIndex 按 lead 稳定取一条,同一 lead 永远同一条)。
+// 但不再进开场白本体 —— design 用 messageFrameworks、florist 用 floristMessageFrameworks,各 15 条轮替。
 function buildMessage(name, industry, angle, seed = "") {
-  const idx = stableIndex(`framework|${seed}|${name}`, messageFrameworks.length);
-  return messageFrameworks[idx](name);
+  const pool = campaignId === "florist" ? floristMessageFrameworks : messageFrameworks;
+  const idx = stableIndex(`framework|${seed}|${name}`, pool.length);
+  return pool[idx](name);
 }
 
 function isExcluded(row) {
