@@ -180,17 +180,13 @@ const designSourceLanes = [
   ["mobile phone accessories", "Kepong"],
   ["gadget accessories shop", "Kajang"],
   ["gadget accessories shop", "Setia Alam"],
-  ["florist gift shop", "Ampang"],
-  ["florist gift shop", "Mont Kiara"],
-  ["flower delivery", "Bangsar"],
-  ["florist gift shop", "Seremban"],
-  ["florist gift shop", "Kuantan"],
+  // —— florist lane 已移出 design（2026-07-03）：花店归 florist campaign 独占，避免同店被两条线各发一次 ——
   // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery"].map((q) => [q, city])),
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 新加坡 + 加厚 ——
   ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery", "florist gift shop"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery"].map((q) => [q, city])),
 ];
 
 // Order = priority (drives candidateSort rank + fill order). Mix updated 2026-06-24.
@@ -205,7 +201,6 @@ const designTargetQuotas = new Map([
 
 const designIndustryCaps = new Map([
   ["restaurant / cafe / bakery", 3],
-  ["florist / gifting / lifestyle retail", 5],
   ["electronics / gadgets", 5],
   ["pet / lifestyle services", 2],
   ["fitness / studio", 2],
