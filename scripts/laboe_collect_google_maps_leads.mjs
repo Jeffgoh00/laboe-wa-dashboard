@@ -201,6 +201,7 @@ const designTargetQuotas = new Map([
 
 const designIndustryCaps = new Map([
   ["restaurant / cafe / bakery", 3],
+  ["florist / gifting / lifestyle retail", 5],
   ["electronics / gadgets", 5],
   ["pet / lifestyle services", 2],
   ["fitness / studio", 2],
@@ -248,6 +249,8 @@ const floristExcludePatterns = [
   /\bfuneral (home|parlour|parlor|services)\b/i,
   /\bwholesale\b/i,
   /\bingredient supplier\b/i,
+  /\bmanufactur/i,            // manufacturer / manufacturing = B2B，非零售
+  /\bartificial flower/i,     // 假花厂/批发，非消费花店
 ];
 
 // 三类平均(≈100 条:34 / 33 / 33)
@@ -378,9 +381,13 @@ function waLink(phone, message) {
 
 function industryFrom(categoryText, queryText) {
   const text = `${categoryText} ${queryText}`.toLowerCase();
-  // florist campaign 分 3 桶(花店/蛋糕/气球)。queryText 里带 lane 关键词，足以判定；花店优先(wedding florist 才不落 event)。
+  // florist campaign 分 3 桶(花店/蛋糕/气球)。**优先按 lane(queryText)判定**——每条 lane 只属一个垂直,
+  // 避免「蛋糕店 category 里带 Florist」被误标花店(下同气球)。lane 判不出才回退到 category 关键词。
   if (campaignId === "florist") {
-    if (/florist|flower|bouquet|bunga/.test(text)) return "florist / flowers";
+    const q = String(queryText || "").toLowerCase();
+    if (/cake|bakery|dessert|\bkek\b/.test(q)) return "cake / bakery";
+    if (/balloon|belon|party|helium/.test(q)) return "balloon / party";
+    if (/florist|flower|bunga/.test(q)) return "florist / flowers";
     if (/cake|bakery|baker|dessert|pastry|patisserie|\bkek\b|bread/.test(text)) return "cake / bakery";
     if (/balloon|belon|party|helium|decoration/.test(text)) return "balloon / party";
     return "florist / flowers";
@@ -400,6 +407,9 @@ function industryFrom(categoryText, queryText) {
 }
 
 function buildAngle(industry, name) {
+  if (campaignId === "florist") {
+    return `${name} takes most orders through scattered WhatsApp and social DMs, so a simple online catalogue with one-tap WhatsApp ordering could make busy and festive days far easier to manage.`;
+  }
   if (industry === "beauty / skincare / cosmetics") {
     return `${name} already has a product-led retail presence, and stronger product visuals, launch creatives, and short-form social content could make the brand look more premium online.`;
   }
@@ -437,6 +447,7 @@ function buildAngle(industry, name) {
 }
 
 function buildObservedNeed(industry) {
+  if (campaignId === "florist") return "Orders come in over scattered WhatsApp/IG chats; a one-page catalogue with one-tap WhatsApp ordering would tidy that up.";
   if (industry === "restaurant / cafe / bakery") return "Food/product visuals and promo content need to look appetizing and consistent across Maps/social.";
   if (industry === "beauty / skincare / cosmetics") return "Product and retail visuals need a more premium, campaign-ready look.";
   if (industry === "home / living / decor") return "Catalog and lifestyle visuals need clearer styling to show product value.";
