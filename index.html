@@ -1119,6 +1119,35 @@ I can also just send a few relevant sample works for your reference, and you can
       return "https://wa.me/" + phone + "?text=" + encodeURIComponent(messageFor(lead));
     }
 
+    // —— Celebration campaign(花店/气球/蛋糕)welcome message:中英双版,门户按行业自适应 ——
+    const HANNA_SAMPLE_URL = "https://hannaflower.vercel.app";
+    const CELEBRATION_WELCOME_VOCAB = {
+      "florist / flowers": { zhSelf: "花店", zhOthers: "气球 / 蛋糕", zhProduct: "花", enSelf: "flower shops", enOthers: "balloon / cake", enProduct: "flowers" },
+      "cake / bakery":     { zhSelf: "蛋糕店", zhOthers: "气球 / 花", zhProduct: "蛋糕", enSelf: "cake shops", enOthers: "balloon / flower", enProduct: "cakes" },
+      "balloon / party":   { zhSelf: "气球店", zhOthers: "花 / 蛋糕", zhProduct: "气球", enSelf: "balloon shops", enOthers: "flower / cake", enProduct: "balloons" },
+    };
+    function celebrationMsg(lead, lang) {
+      const v = CELEBRATION_WELCOME_VOCAB[lead.industry] || CELEBRATION_WELCOME_VOCAB["florist / flowers"];
+      const who = senderName || "Jeff";
+      if (lang === "zh") {
+        return "Hi 👋 我是 " + who + "\n\n" +
+          "我们最近帮一些本地" + v.zhSelf + "做了一个简单的网站 (产品展示 + WhatsApp 下单)\n" +
+          "可以帮助你减少一直回复客户问价的时间，让接单更简单一点\n\n" +
+          "同时也有一些" + v.zhOthers + "相关的客户，有机会从别的商家那边看到之后，顺便来你这边订" + v.zhProduct + "\n\n" +
+          "如果你有兴趣可以看看这个 sample 😄\n" + HANNA_SAMPLE_URL;
+      }
+      return "Hi 👋 I'm " + who + "\n\n" +
+        "We recently built a simple website for some local " + v.enSelf + " — product display + WhatsApp ordering.\n" +
+        "It helps you spend less time replying to price questions and makes taking orders easier.\n\n" +
+        "We also work with some " + v.enOthers + " shops, so customers who came across them have a chance to order " + v.enProduct + " from you too.\n\n" +
+        "If you're keen, have a look at this sample 😄\n" + HANNA_SAMPLE_URL;
+    }
+    function celebrationWaLink(lead, lang) {
+      const phone = String(lead.phone || "").replace(/\D/g, "");
+      if (!phone) return "#";
+      return "https://wa.me/" + phone + "?text=" + encodeURIComponent(celebrationMsg(lead, lang));
+    }
+
     async function loadAll() {
       await loadIdentity();
       await loadCampaigns();
@@ -1533,12 +1562,21 @@ I can also just send a few relevant sample works for your reference, and you can
           '<span class="status-chip" data-status="' + safe(lead.send_status) + '">' + label(lead.send_status) + '</span>' +
         '</div>' +
         '<p>' + safe(lead.observed_design_need || "") + '</p>' +
-        '<textarea readonly>' + safe(messageFor(lead)) + '</textarea>' +
-        '<div class="actions">' +
-          '<a class="button primary" href="' + safe(waLink(lead)) + '" target="_blank" rel="noopener">Open WhatsApp</a>' +
-          statusActions +
-          '<a class="button" href="' + safe(lead.google_maps_url || "#") + '" target="_blank" rel="noopener">Maps</a>' +
-        '</div>' +
+        (activeCampaignId === "florist"
+          ? '<textarea readonly>' + safe(celebrationMsg(lead, "en")) + '</textarea>' +
+            '<textarea readonly>' + safe(celebrationMsg(lead, "zh")) + '</textarea>' +
+            '<div class="actions">' +
+              '<a class="button primary" href="' + safe(celebrationWaLink(lead, "en")) + '" target="_blank" rel="noopener">Open WhatsApp (EN)</a>' +
+              '<a class="button primary" href="' + safe(celebrationWaLink(lead, "zh")) + '" target="_blank" rel="noopener">打开 WhatsApp (中文)</a>' +
+              statusActions +
+              '<a class="button" href="' + safe(lead.google_maps_url || "#") + '" target="_blank" rel="noopener">Maps</a>' +
+            '</div>'
+          : '<textarea readonly>' + safe(messageFor(lead)) + '</textarea>' +
+            '<div class="actions">' +
+              '<a class="button primary" href="' + safe(waLink(lead)) + '" target="_blank" rel="noopener">Open WhatsApp</a>' +
+              statusActions +
+              '<a class="button" href="' + safe(lead.google_maps_url || "#") + '" target="_blank" rel="noopener">Maps</a>' +
+            '</div>') +
       '</article>';
     }
 
