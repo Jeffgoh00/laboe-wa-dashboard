@@ -81,7 +81,13 @@
     .lead-mix li { display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:3px 0; border-bottom:1px dashed var(--line); }
     .lead-mix li b { color:var(--brand); white-space:nowrap; }
     .lead-info-foot { font-size:12px; color:#64748b; margin:0; }
-    .filters { display:grid; grid-template-columns:1.5fr 160px 150px; gap:10px; margin-bottom:12px; }
+    .filters { display:grid; grid-template-columns:1.5fr 160px 150px auto; gap:10px; margin-bottom:12px; }
+    .grade-badge { display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px; font-size:12px; font-weight:800; }
+    .grade-badge.grade-A { background:#dcfce7; color:#166534; }
+    .grade-badge.grade-B { background:#fef3c7; color:#92400e; }
+    .grade-badge.grade-C { background:#eef2f6; color:#64748b; }
+    .top-toggle { border:1px solid var(--line); border-radius:8px; background:#fff; font-weight:700; font-size:13px; cursor:pointer; padding:0 12px; white-space:nowrap; }
+    .top-toggle.active { background:#fee2e2; border-color:#fca5a5; color:#b91c1c; }
     .list-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
     .list-card { padding:14px; display:grid; gap:10px; }
     .list-card[data-complete="true"] { background:var(--green-soft); border-color:#9ee6bd; }
@@ -484,6 +490,7 @@ I can also just send a few relevant sample works for your reference, and you can
             <option value="skip">Skip</option>
             <option value="bad_skip">Bad / Skip</option>
           </select>
+          <button id="top-toggle" type="button" class="top-toggle">🔥 Top 50</button>
         </div>
         <div id="lead-list" class="lead-list"></div>
       </section>
@@ -829,6 +836,7 @@ I can also just send a few relevant sample works for your reference, and you can
     $("lead-filter").addEventListener("input", renderLeads);
     $("profile-filter").addEventListener("change", renderLeads);
     $("status-filter").addEventListener("change", renderLeads);
+    if ($("top-toggle")) $("top-toggle").addEventListener("click", () => { topOnly = !topOnly; $("top-toggle").classList.toggle("active", topOnly); renderLeads(); });
     $("reply-search").addEventListener("input", renderReplySearch);
     $("home-start-collection").addEventListener("click", requestCollectionRun);
     $("campaign-select").addEventListener("change", async (event) => {
@@ -1572,13 +1580,17 @@ I can also just send a few relevant sample works for your reference, and you can
     const LIST_CHUNK = 30;
     let listLimit = LIST_CHUNK;
     let listKey = "";
+    let topOnly = false;
     function renderLeads() {
-      const rows = filteredLeads("lead-filter");
+      let rows = filteredLeads("lead-filter");
+      // 按 lead_score 从高到低排(方向 A);无分数的(seed 预览)排后面、保持原优先级
+      rows.sort((a, b) => (b.lead_score ?? -1) - (a.lead_score ?? -1) || (a.priority_rank || 999) - (b.priority_rank || 999));
+      if (topOnly) rows = rows.slice(0, 50);
       const batch = activeListBatchId ? batches.find((item) => item.id === activeListBatchId) : null;
       $("list-title").textContent = batch ? batch.title : "Lead List";
       $("list-subtitle").textContent = batch ? batch.run_date + " / " + batch.sender_profile + " / " + rows.length + " leads" : "Filter by date, WA profile, status, business, phone, or industry.";
       // 列表"身份"(batch + 三个筛选)一变就重置分页;同一列表内重渲(如改状态)保留已展开的量,避免列表塌回去
-      const key = [activeListBatchId, $("profile-filter").value, $("status-filter").value, $("lead-filter").value].join("|");
+      const key = [activeListBatchId, $("profile-filter").value, $("status-filter").value, $("lead-filter").value, topOnly].join("|");
       if (key !== listKey) { listKey = key; listLimit = LIST_CHUNK; }
       const shown = rows.slice(0, listLimit);
       let html = shown.length ? shown.map(renderLeadCard).join("") : '<p class="empty">No leads match the current filters.</p>';
@@ -1610,7 +1622,7 @@ I can also just send a few relevant sample works for your reference, and you can
         '<button data-status-update="skip">Skip</button>';
       return '<article class="lead-card" data-lead-id="' + safe(lead.id) + '">' +
         '<div class="lead-top">' +
-          '<div class="lead-title"><h3>' + safe(lead.business_name) + '</h3><div class="meta-row"><span>' + safe(lead.sender_profile) + ' #' + safe(lead.sender_sequence) + '</span><span>' + safe(lead.phone) + '</span><span>' + safe(lead.industry) + '</span></div></div>' +
+          '<div class="lead-title"><h3>' + safe(lead.business_name) + '</h3><div class="meta-row">' + (lead.lead_score != null ? '<span class="grade-badge grade-' + safe(lead.lead_grade || 'C') + '">' + safe(lead.lead_grade || '') + ' · ' + safe(lead.lead_score) + '</span>' : '') + '<span>' + safe(lead.sender_profile) + ' #' + safe(lead.sender_sequence) + '</span><span>' + safe(lead.phone) + '</span><span>' + safe(lead.industry) + '</span></div></div>' +
           '<span class="status-chip" data-status="' + safe(lead.send_status) + '">' + label(lead.send_status) + '</span>' +
         '</div>' +
         '<p>' + safe(lead.observed_design_need || "") + '</p>' +
