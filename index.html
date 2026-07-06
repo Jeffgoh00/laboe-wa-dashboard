@@ -1123,25 +1123,62 @@ I can also just send a few relevant sample works for your reference, and you can
     // —— Celebration campaign(花店/气球/蛋糕)welcome message:中英双版,门户按行业自适应 ——
     const HANNA_SAMPLE_URL = "https://hannaflower.vercel.app";
     const CELEBRATION_WELCOME_VOCAB = {
-      "florist / flowers": { zhSelf: "花店", zhOthers: "气球 / 蛋糕", zhProduct: "花", enSelf: "flower shops", enOthers: "balloon / cake", enProduct: "flowers" },
-      "cake / bakery":     { zhSelf: "蛋糕店", zhOthers: "气球 / 花", zhProduct: "蛋糕", enSelf: "cake shops", enOthers: "balloon / flower", enProduct: "cakes" },
-      "balloon / party":   { zhSelf: "气球店", zhOthers: "花 / 蛋糕", zhProduct: "气球", enSelf: "balloon shops", enOthers: "flower / cake", enProduct: "balloons" },
+      "florist / flowers": { zhSelf: "花店", zhOthers: "气球 / 蛋糕", zhProduct: "花", enSelf: "flower shops", enSelfOne: "flower shop", enOthers: "balloon and cake", enProduct: "flowers" },
+      "cake / bakery":     { zhSelf: "蛋糕店", zhOthers: "气球 / 花", zhProduct: "蛋糕", enSelf: "cake shops", enSelfOne: "cake shop", enOthers: "balloon and flower", enProduct: "cakes" },
+      "balloon / party":   { zhSelf: "气球店", zhOthers: "花 / 蛋糕", zhProduct: "气球", enSelf: "balloon shops", enSelfOne: "balloon shop", enOthers: "flower and cake", enProduct: "balloons" },
+    };
+    // 三个 welcome msg 模版(A 直接价值 / B 同行案例 / E 行业痛点)。文字按行业自适应({zhSelf}=花店/蛋糕店/气球店 等)。
+    // 切换测试:改 CELEBRATION_ACTIVE = "A" | "B" | "E"。按钮/跳转/hannaflower 链接不在此处,勿动。
+    const CELEBRATION_ACTIVE = "A";
+    const CELEBRATION_TEMPLATES = {
+      A: {
+        zh: (v, who) =>
+          `Hi 👋 我是 ${who}\n\n` +
+          `我们最近做了一个专门给${v.zhSelf}用的线上接单页面，想看看你会不会有兴趣。\n\n` +
+          `可以帮助你减少一直回复客户问价的时间，让接单更简单一点。\n\n` +
+          `同时也有一些${v.zhOthers}相关的客户，有机会从别的商家那边看到之后，顺便来你这边订${v.zhProduct}。\n\n` +
+          `如果你有兴趣可以看看这个 sample 😄\n${HANNA_SAMPLE_URL}`,
+        en: (v, who) =>
+          `Hi 👋 I'm ${who}.\n\n` +
+          `We recently built a simple online ordering page for local ${v.enSelf} and thought you might be interested.\n\n` +
+          `It helps reduce the time spent replying to customer enquiries and makes taking orders much easier.\n\n` +
+          `We also work with ${v.enOthers} shops, so there's a chance customers from those businesses may discover your ${v.enSelfOne} as well.\n\n` +
+          `Feel free to have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
+      },
+      B: {
+        zh: (v, who) =>
+          `Hi 👋 我是 ${who}\n\n` +
+          `最近已经有几家本地${v.zhSelf}开始使用我们的线上接单页面，所以也想分享给你看看。\n\n` +
+          `它可以帮助你减少一直回复客户问价的时间，让接单更简单一点。\n\n` +
+          `同时也有一些${v.zhOthers}相关的客户，有机会从别的商家那边看到之后，顺便来你这边订${v.zhProduct}。\n\n` +
+          `如果你有兴趣可以看看这个 sample 😄\n${HANNA_SAMPLE_URL}`,
+        en: (v, who) =>
+          `Hi 👋 I'm ${who}.\n\n` +
+          `A few local ${v.enSelf} have recently started using our online ordering page, so I thought I'd share it with you as well.\n\n` +
+          `It helps reduce the time spent replying to customer enquiries and makes taking orders much easier.\n\n` +
+          `We also work with ${v.enOthers} shops, so there's a chance customers from those businesses may discover your ${v.enSelfOne} too.\n\n` +
+          `Feel free to have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
+      },
+      E: {
+        zh: (v, who) =>
+          `Hi 👋 我是 ${who}\n\n` +
+          `最近跟不少${v.zhSelf}老板聊天，发现大家每天都会花不少时间回复 WhatsApp，所以我们做了一个简单的线上接单页面。\n\n` +
+          `它可以帮助你减少一直回复客户问价的时间，让接单更简单一点。\n\n` +
+          `同时也有一些${v.zhOthers}相关的客户，有机会从别的商家那边看到之后，顺便来你这边订${v.zhProduct}。\n\n` +
+          `如果你有兴趣可以看看这个 sample 😄\n${HANNA_SAMPLE_URL}`,
+        en: (v, who) =>
+          `Hi 👋 I'm ${who}.\n\n` +
+          `We've spoken with quite a few ${v.enSelfOne} owners recently and found that many spend a lot of time replying to WhatsApp enquiries, so we built a simple online ordering page.\n\n` +
+          `It helps reduce the time spent replying to customer enquiries and makes taking orders much easier.\n\n` +
+          `We also work with ${v.enOthers} shops, so there's a chance customers from those businesses may discover your ${v.enSelfOne} too.\n\n` +
+          `Feel free to have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
+      },
     };
     function celebrationMsg(lead, lang) {
       const v = CELEBRATION_WELCOME_VOCAB[lead.industry] || CELEBRATION_WELCOME_VOCAB["florist / flowers"];
       const who = senderName || "Jeff";
-      if (lang === "zh") {
-        return "Hi 👋 我是 " + who + "\n\n" +
-          "我们最近帮一些本地" + v.zhSelf + "做了一个简单的网站 (产品展示 + WhatsApp 下单)\n" +
-          "可以帮助你减少一直回复客户问价的时间，让接单更简单一点\n\n" +
-          "同时也有一些" + v.zhOthers + "相关的客户，有机会从别的商家那边看到之后，顺便来你这边订" + v.zhProduct + "\n\n" +
-          "如果你有兴趣可以看看这个 sample 😄\n" + HANNA_SAMPLE_URL;
-      }
-      return "Hi 👋 I'm " + who + "\n\n" +
-        "We recently built a simple website for some local " + v.enSelf + " — product display + WhatsApp ordering.\n" +
-        "It helps you spend less time replying to price questions and makes taking orders easier.\n\n" +
-        "We also work with some " + v.enOthers + " shops, so customers who came across them have a chance to order " + v.enProduct + " from you too.\n\n" +
-        "If you're keen, have a look at this sample 😄\n" + HANNA_SAMPLE_URL;
+      const tpl = CELEBRATION_TEMPLATES[CELEBRATION_ACTIVE] || CELEBRATION_TEMPLATES.A;
+      return lang === "zh" ? tpl.zh(v, who) : tpl.en(v, who);
     }
     function celebrationWaLink(lead, lang) {
       const phone = String(lead.phone || "").replace(/\D/g, "");
