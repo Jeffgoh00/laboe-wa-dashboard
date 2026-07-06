@@ -103,7 +103,6 @@ const designSourceLanes = [
   ["jewellery boutique", "Bangsar"],
   ["jewellery boutique", "Mont Kiara"],
   ["jewelry store", "Bandar Sunway"],
-  ["watch shop", "Damansara Uptown"],
   ["jewellery boutique", "Seremban"],
   ["jewellery boutique", "Kuantan"],
   ["jewellery boutique", "Bukit Mertajam"],
@@ -121,15 +120,15 @@ const designSourceLanes = [
   // —— fashion / home / 蛋糕 / 宠物 / 健身 / 手机配件 lanes 已移除（2026-07-06）：design 收窄为 4 类 ——
   // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "watch shop", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 新加坡 + 加厚 ——
   ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "watch shop", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
 ];
 
 // Order = priority (drives candidateSort rank + fill order). 2026-07-06：收窄为 4 类，各均分 25（弟弟指定）。
 const designTargetQuotas = new Map([
-  ["jewelry / watches / accessories", 25],
+  ["jewelry", 25],
   ["maternity / baby / kids product", 25],
   ["beauty / skincare / cosmetics", 25],
   ["event / wedding / party / gifting", 25],
@@ -330,7 +329,7 @@ function industryFrom(categoryText, queryText) {
   if (/florist|flower|bouquet/.test(text)) return "florist / gifting / lifestyle retail";
   if (/cosmetic|beauty|skincare|skin care|makeup/.test(text)) return "beauty / skincare / cosmetics";
   if (/maternity|pregnan|mother|baby|kids|children|child|toy|learning toy/.test(text)) return "maternity / baby / kids product";
-  if (/jewel|jewelry|jewellery|watch/.test(text)) return "jewelry / watches / accessories";
+  if (/jewel|jewelry|jewellery/.test(text)) return "jewelry";
   if (/fashion|boutique|clothing|women|apparel|shoe|bag/.test(text)) return "fashion / apparel / boutique";
   if (/home|decor|furniture|living/.test(text)) return "home / living / decor";
   if (/electronic|gadget|mobile|accessor/.test(text)) return "electronics / gadgets";
@@ -357,7 +356,7 @@ function buildAngle(industry, name) {
   if (industry === "home / living / decor") {
     return `${name} has products where styling matters, so better catalog visuals, room-setting content, and website/social creatives could lift perceived value.`;
   }
-  if (industry === "jewelry / watches / accessories") {
+  if (industry === "jewelry") {
     return `${name} sells detail-driven products, so sharper close-up visuals, premium product layouts, and campaign content could make the items feel more desirable.`;
   }
   if (industry === "electronics / gadgets") {
@@ -386,7 +385,7 @@ function buildObservedNeed(industry) {
   if (industry === "fashion / apparel / boutique") return "New-arrival and lookbook content needs more consistent visual direction.";
   if (industry === "maternity / baby / kids product") return "Parent-facing product visuals need clear trust cues, friendly packaging, and polished social content.";
   if (industry === "florist / gifting / lifestyle retail") return "Gift/seasonal content needs strong photos, layout, and promo graphics.";
-  if (industry === "jewelry / watches / accessories") return "Detail product shots and premium social layouts can be stronger.";
+  if (industry === "jewelry") return "Detail product shots and premium social layouts can be stronger.";
   if (industry === "electronics / gadgets") return "Product benefits need clearer visual explanation and promo layouts.";
   if (industry === "event / wedding / party / gifting") return "Packages, event galleries, and promo content need strong visual storytelling.";
   if (industry === "pet / lifestyle services") return "Friendly service/product visuals and social content can make the brand more approachable.";
