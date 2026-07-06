@@ -221,6 +221,7 @@ const columns = [
   "recommended_angle",
   "suggested_opening_message",
   "lead_grade",
+  "lead_score",
   "next_action",
   "dedupe_key",
   "maps_category",
@@ -290,6 +291,22 @@ function reviewCountNumber(value) {
   const digits = String(value ?? "").replace(/[^\d]/g, "");
   return digits ? Number(digits) : 0;
 }
+
+// —— Lead scoring (方向 A：没网站/弱网站 = 高分，因为有好网站的不需要我们的简单网站) ——
+// 权重集中在这里，一处可调。与 DB backfill SQL 同源，改这里也要同步 SQL/门户。
+const WEAK_SITE_RE = /(facebook|fb\.com|instagram|tiktok|linktr|wa\.me|whatsapp\.com|shopee|lazada|carousell|beacons\.ai|blogspot|wixsite|\.wix\.com|weebly|wordpress\.com|business\.site|godaddysites|sites\.google\.com|mystrikingly|webnode|jimdo|square\.site)/i;
+function scoreLead({ website, phone, reviews, rating, openEvidence }) {
+  const url = String(website ?? "").trim();
+  let s = url === "" ? 40 : WEAK_SITE_RE.test(url) ? 28 : 0;           // 无在线 / 弱站 / 真站
+  s += /^601\d{7,}/.test(String(phone ?? "").replace(/\D/g, "")) ? 15 : -25; // 可 WhatsApp
+  const r = reviewCountNumber(reviews);
+  s += r === 0 ? 0 : r <= 10 ? 8 : r <= 50 ? 15 : r <= 200 ? 18 : 14;  // 真实度/付费力
+  const rt = Number(rating) || 0;
+  s += rt >= 4.0 ? 10 : rt >= 3.0 ? 5 : 0;                             // 口碑
+  s += /permanently closed/i.test(String(openEvidence ?? "")) ? -30 : 10; // 活跃
+  return Math.max(0, Math.min(100, s));
+}
+function gradeFromScore(s) { return s >= 85 ? "A" : s >= 55 ? "B" : "C"; }
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -671,6 +688,8 @@ function parsePayload(payload, query, city) {
       const reviews = findReviewCount(arr, arr[0]);
       const angle = buildAngle(industry, name);
       const message = buildMessage(name, industry, angle, `${normalizedPhone}|${address}`);
+      const openEvidence = findOpenStatus(arr);
+      const leadScore = scoreLead({ website, phone: normalizedPhone, reviews, rating, openEvidence });
       const row = {
         date,
         business_name: name,
@@ -686,11 +705,12 @@ function parsePayload(payload, query, city) {
         contact_channel: "Mobile / WhatsApp likely",
         contact_details: phone.international || phone.display || normalizedPhone,
         whatsapp_click_to_send_link: waLink(normalizedPhone, message),
-        active_or_public_evidence: findOpenStatus(arr),
+        active_or_public_evidence: openEvidence,
         observed_design_need: buildObservedNeed(industry),
         recommended_angle: angle,
         suggested_opening_message: message,
-        lead_grade: "A",
+        lead_grade: gradeFromScore(leadScore),
+        lead_score: leadScore,
         next_action: "Send WhatsApp opener manually; mark green/red/no reply after sending.",
         dedupe_key: `${normalizeText(name)}|${normalizedPhone}|${normalizeText(address)}`,
         maps_category: categoryText,

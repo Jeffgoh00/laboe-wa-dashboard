@@ -170,6 +170,7 @@ function prepareRequestImport(parsed, ctx, listIndex, existingDayPhones, existin
       recommended_angle: lead.recommended_angle || lead.angle || "",
       suggested_opening_message: lead.suggested_opening_message || lead.message || "",
       lead_grade: lead.lead_grade || "A",
+      lead_score: lead.lead_score ?? null,
       next_action: lead.next_action || "Send WhatsApp opener manually; mark status after sending.",
       dedupe_key: lead.dedupe_key || "",
       maps_category: lead.maps_category || "",
