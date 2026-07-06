@@ -939,7 +939,10 @@ I can also just send a few relevant sample works for your reference, and you can
       document.querySelectorAll(".view").forEach((view) => view.classList.add("hidden"));
       const _vEl = $(viewName + "-view");
       _vEl.classList.remove("hidden");
-      _vEl.classList.remove("fade-in"); void _vEl.offsetWidth; _vEl.classList.add("fade-in");
+      // lists view 可能很高(整批 lead 卡),对它做 transform+opacity 动画会把整页提升成一个
+      // 超大 GPU layer → iOS Safari OOM。只对轻量 view 做淡入。
+      _vEl.classList.remove("fade-in");
+      if (viewName !== "lists") { void _vEl.offsetWidth; _vEl.classList.add("fade-in"); }
       const showChrome = !["result", "guide"].includes(viewName);
       const pt = $("page-title"); if (pt) pt.classList.toggle("hidden", !showChrome);
       document.querySelectorAll(".identity-strip, .date-strip").forEach((el) => el.classList.toggle("hidden", !showChrome));
@@ -1528,12 +1531,26 @@ I can also just send a few relevant sample works for your reference, and you can
       });
     }
 
+    // 每张 lead 卡很重(florist 含 2 个 textarea + 2 个按钮)。100 张一次全渲染 → iOS Safari
+    // 编译整页成一个超大 compositing layer 直接 OOM 崩溃("A problem repeatedly occurred")。
+    // 和 renderReplySearch 一样先只渲一屏,靠 "Show more" 逐块加载,DOM 永远不超 iOS 内存。
+    const LIST_CHUNK = 30;
+    let listLimit = LIST_CHUNK;
+    let listKey = "";
     function renderLeads() {
       const rows = filteredLeads("lead-filter");
       const batch = activeListBatchId ? batches.find((item) => item.id === activeListBatchId) : null;
       $("list-title").textContent = batch ? batch.title : "Lead List";
       $("list-subtitle").textContent = batch ? batch.run_date + " / " + batch.sender_profile + " / " + rows.length + " leads" : "Filter by date, WA profile, status, business, phone, or industry.";
-      $("lead-list").innerHTML = rows.length ? rows.map(renderLeadCard).join("") : '<p class="empty">No leads match the current filters.</p>';
+      // 列表"身份"(batch + 三个筛选)一变就重置分页;同一列表内重渲(如改状态)保留已展开的量,避免列表塌回去
+      const key = [activeListBatchId, $("profile-filter").value, $("status-filter").value, $("lead-filter").value].join("|");
+      if (key !== listKey) { listKey = key; listLimit = LIST_CHUNK; }
+      const shown = rows.slice(0, listLimit);
+      let html = shown.length ? shown.map(renderLeadCard).join("") : '<p class="empty">No leads match the current filters.</p>';
+      if (rows.length > shown.length) {
+        html += '<button type="button" id="list-show-more" class="primary" style="width:100%;margin-top:6px">Show more (' + (rows.length - shown.length) + ' more)</button>';
+      }
+      $("lead-list").innerHTML = html;
     }
 
     function renderReplySearch() {
@@ -1581,6 +1598,11 @@ I can also just send a few relevant sample works for your reference, and you can
     }
 
     document.addEventListener("click", async (event) => {
+      if (event.target.id === "list-show-more") {
+        listLimit += LIST_CHUNK;
+        renderLeads();
+        return;
+      }
       const metricCard = event.target.closest(".metric[data-metric-status]");
       if (metricCard) {
         activeListBatchId = "";
