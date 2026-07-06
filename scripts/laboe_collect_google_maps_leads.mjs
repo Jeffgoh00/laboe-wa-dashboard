@@ -81,7 +81,6 @@ const designSourceLanes = [
   ["cosmetics store", "Kota Damansara"],
   ["k beauty store", "Bukit Jalil"],
   ["makeup store", "Sri Petaling"],
-  ["spa products store", "Kajang"],
   ["beauty boutique", "Setia Alam"],
   ["skincare boutique", "Ara Damansara"],
   ["local cosmetics store", "Kepong"],
@@ -91,11 +90,6 @@ const designSourceLanes = [
   ["cosmetics store", "Kuantan"],
   ["skincare store", "Sungai Petani"],
   ["beauty product shop", "Bukit Mertajam"],
-  ["boutique clothing store", "Ampang"],
-  ["fashion boutique", "Mont Kiara"],
-  ["women boutique", "Bandar Sunway"],
-  ["muslimah boutique", "Kajang"],
-  ["baju kurung boutique", "Sri Petaling"],
   ["kids boutique", "Kota Damansara"],
   ["kids apparel store", "Setia Alam"],
   ["baby product store", "Puchong"],
@@ -106,55 +100,10 @@ const designSourceLanes = [
   ["children toy store", "Penang"],
   ["baby boutique", "Melaka"],
   ["kids learning toy store", "Shah Alam"],
-  ["bags boutique", "Bangsar"],
-  ["accessories boutique", "Damansara Uptown"],
-  ["fashion boutique", "Seremban"],
-  ["fashion boutique", "Kuantan"],
-  ["fashion boutique", "Muar"],
-  ["fashion boutique", "Batu Pahat"],
-  ["muslimah boutique", "Sungai Petani"],
-  ["baju kurung boutique", "Bukit Mertajam"],
-  ["fashion boutique", "Taiping"],
-  ["fashion boutique", "Miri"],
-  ["fashion boutique", "Sibu"],
-  ["cake shop bakery", "Ampang"],
-  ["bakery cafe", "Mont Kiara"],
-  ["dessert cafe", "Bandar Sunway"],
-  ["custom cake shop", "Kota Damansara"],
-  ["cake delivery", "Kajang"],
-  ["coffee roaster cafe", "Bangsar South"],
-  ["dessert shop", "Damansara Uptown"],
-  ["bakery cafe", "Sri Petaling"],
-  ["cake shop bakery", "Seremban"],
-  ["cake shop bakery", "Kuantan"],
-  ["cake shop bakery", "Muar"],
-  ["cake shop bakery", "Batu Pahat"],
-  ["cake shop bakery", "Sungai Petani"],
-  ["cake shop bakery", "Bukit Mertajam"],
-  ["dessert cafe", "Taiping"],
-  ["coffee roaster cafe", "Miri"],
-  ["home decor shop", "Ampang"],
-  ["home decor shop", "Mont Kiara"],
-  ["homeware shop", "Bandar Sunway"],
-  ["lighting decor shop", "Puchong Jaya"],
-  ["curtain decor shop", "Kajang"],
-  ["home fragrance shop", "Bangsar"],
-  ["furniture decor store", "Setia Alam"],
-  ["home decor shop", "Kota Damansara"],
-  ["home decor shop", "Seremban"],
-  ["home decor shop", "Kuantan"],
-  ["home decor shop", "Muar"],
-  ["home decor shop", "Batu Pahat"],
-  ["home decor shop", "Sungai Petani"],
-  ["home decor shop", "Bukit Mertajam"],
-  ["home decor shop", "Taiping"],
-  ["home decor shop", "Miri"],
   ["jewellery boutique", "Bangsar"],
   ["jewellery boutique", "Mont Kiara"],
   ["jewelry store", "Bandar Sunway"],
   ["watch shop", "Damansara Uptown"],
-  ["accessories boutique", "Sri Petaling"],
-  ["bags boutique", "Kota Damansara"],
   ["jewellery boutique", "Seremban"],
   ["jewellery boutique", "Kuantan"],
   ["jewellery boutique", "Bukit Mertajam"],
@@ -168,45 +117,28 @@ const designSourceLanes = [
   ["hamper gift delivery", "Kajang"],
   ["gift hamper shop", "Seremban"],
   ["party decoration", "Kuantan"],
-  ["pet shop", "Ampang"],
-  ["pet supplies", "Mont Kiara"],
-  ["pet grooming", "Bandar Sunway"],
-  ["pet bakery", "Damansara Uptown"],
-  ["pilates studio", "Bangsar"],
-  ["yoga studio", "Mont Kiara"],
-  ["dance studio", "Bandar Sunway"],
-  ["fitness studio", "Kota Damansara"],
-  ["mobile phone accessories", "Sri Petaling"],
-  ["mobile phone accessories", "Kepong"],
-  ["gadget accessories shop", "Kajang"],
-  ["gadget accessories shop", "Setia Alam"],
   // —— florist lane 已移出 design（2026-07-03）：花店归 florist campaign 独占，避免同店被两条线各发一次 ——
+  // —— fashion / home / 蛋糕 / 宠物 / 健身 / 手机配件 lanes 已移除（2026-07-06）：design 收窄为 4 类 ——
   // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "watch shop", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 新加坡 + 加厚 ——
   ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "fashion boutique", "muslimah boutique", "baby product store", "kids boutique", "home decor shop", "jewellery boutique", "cake shop bakery"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "watch shop", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
 ];
 
-// Order = priority (drives candidateSort rank + fill order). Mix updated 2026-06-24.
+// Order = priority (drives candidateSort rank + fill order). 2026-07-06：收窄为 4 类，各均分 25（弟弟指定）。
 const designTargetQuotas = new Map([
   ["jewelry / watches / accessories", 25],
-  ["maternity / baby / kids product", 20],
-  ["event / wedding / party / gifting", 15],
-  ["fashion / apparel / boutique", 18],
-  ["beauty / skincare / cosmetics", 15],
-  ["home / living / decor", 7],
+  ["maternity / baby / kids product", 25],
+  ["beauty / skincare / cosmetics", 25],
+  ["event / wedding / party / gifting", 25],
 ]);
 
-const designIndustryCaps = new Map([
-  ["restaurant / cafe / bakery", 3],
-  ["florist / gifting / lifestyle retail", 5],
-  ["electronics / gadgets", 5],
-  ["pet / lifestyle services", 2],
-  ["fitness / studio", 2],
-  ["other visual-driven SME", 5],
-]);
+// 严格只要上面 4 类：designSourceLanes 已剪枝成只含这 4 类的搜索词，industryFrom 靠 queryText 判定
+// 且这 4 类的判定规则都排在 fashion/home/restaurant 等之前 → 候选池 100% 落在这 4 类，
+// 三段选取算法（含 Pass 3 兜底）都只会从这 4 类里取，非目标行业进不来，故无需 off-target cap。
+const designIndustryCaps = new Map();
 
 // —— Florist campaign (2026-07-02 → 07-03 扩为 3 类)：全马抓 花店 / 蛋糕 / 气球派对 三类，三平均，其余管线与 design 一致 ——
 const floristCities = [
