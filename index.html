@@ -1136,8 +1136,9 @@ I can also just send a few relevant sample works for your reference, and you can
       "balloon / party":   { zhSelf: "气球店", zhOthers: "花 / 蛋糕", zhProduct: "气球", enSelf: "balloon shops", enSelfOne: "balloon shop", enOthers: "flower and cake", enProduct: "balloons" },
     };
     // 三个 welcome msg 模版(A 直接价值 / B 同行案例 / E 行业痛点)。文字按行业自适应({zhSelf}=花店/蛋糕店/气球店 等)。
-    // 切换测试:改 CELEBRATION_ACTIVE = "A" | "B" | "E"。按钮/跳转/hannaflower 链接不在此处,勿动。
-    const CELEBRATION_ACTIVE = "A";
+    // CELEBRATION_ACTIVE=null → 三模版按 lead 稳定随机分配(A/B 测试,同一 lead 永远同一版,EN/ZH/两个 WA 按钮一致);
+    // 设 "A"/"B"/"E" 可强制单一版本。按钮/跳转/hannaflower 链接不在此处,勿动。
+    const CELEBRATION_ACTIVE = null;
     const CELEBRATION_TEMPLATES = {
       A: {
         zh: (v, who) =>
@@ -1182,10 +1183,19 @@ I can also just send a few relevant sample works for your reference, and you can
           `Feel free to have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
       },
     };
+    // 按 lead 身份稳定取一个模版(同一 lead 每次都同一版 → EN/ZH 两框 + 两个 WA 按钮一致)。
+    function celebrationPick(lead) {
+      if (CELEBRATION_ACTIVE) return CELEBRATION_TEMPLATES[CELEBRATION_ACTIVE] || CELEBRATION_TEMPLATES.A;
+      const keys = Object.keys(CELEBRATION_TEMPLATES);
+      const s = String(lead.phone || lead.id || lead.business_name || "");
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      return CELEBRATION_TEMPLATES[keys[h % keys.length]];
+    }
     function celebrationMsg(lead, lang) {
       const v = CELEBRATION_WELCOME_VOCAB[lead.industry] || CELEBRATION_WELCOME_VOCAB["florist / flowers"];
       const who = senderName || "Jeff";
-      const tpl = CELEBRATION_TEMPLATES[CELEBRATION_ACTIVE] || CELEBRATION_TEMPLATES.A;
+      const tpl = celebrationPick(lead);
       return lang === "zh" ? tpl.zh(v, who) : tpl.en(v, who);
     }
     function celebrationWaLink(lead, lang) {
