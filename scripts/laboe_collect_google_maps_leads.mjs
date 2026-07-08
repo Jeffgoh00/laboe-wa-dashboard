@@ -163,8 +163,8 @@ const floristCities = [
 const floristQueries = [
   // 花店
   "florist", "flower shop", "flower delivery", "florist gift shop", "wedding florist", "online florist", "kedai bunga",
-  // 蛋糕店 / 烘焙
-  "cake shop", "bakery", "birthday cake shop", "custom cake shop", "cake delivery", "dessert shop", "kedai kek",
+  // 蛋糕店 / 烘焙（"dessert shop" 已删——会捞出甜品餐厅/咖啡馆等非零售门店，2026-07-08）
+  "cake shop", "bakery", "birthday cake shop", "custom cake shop", "cake delivery", "kedai kek",
   // 气球 / 派对布置
   "balloon shop", "balloon decoration", "party supplies shop", "party decoration", "helium balloon shop", "balloon delivery", "kedai belon",
 ];
