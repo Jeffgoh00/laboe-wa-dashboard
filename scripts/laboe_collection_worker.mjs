@@ -2,6 +2,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+
+// 卡在 processing 超过这个时长即视为孤儿（远大于真实一轮采集 ~15 分钟，且小于 GH job 60 分钟 timeout）。
+const STALE_GRACE_MS = 20 * 60 * 1000;
 
 const execFileAsync = promisify(execFile);
 
@@ -39,17 +43,9 @@ async function supabase(method, table, { query = "", body, prefer } = {}) {
 // 解析"要为哪个商户、哪天采集"。
 // 优先用 dispatch 传进来的 MERCHANT_ID + COLLECTION_DATE；
 // 否则（cron 兜底）扫最旧一条 status=requested 的 search_request。
-async function resolveRequest() {
-  if (explicitMerchant && explicitDate) {
-    return {
-      merchant_id: explicitMerchant,
-      campaign_id: explicitCampaign || "design",
-      run_date: explicitDate,
-      search_request_id: explicitSearchRequestId || null,
-      target_leads: null,
-    };
-  }
-  const rows = await supabase("GET", "laboe_search_requests", {
+// 捡最旧一条 status=requested。抽出以便 cron 首取 + drain-loop 续取共用，且可单测（注入 db）。
+async function pickOldestRequested(db) {
+  const rows = await db("GET", "laboe_search_requests", {
     query: "?select=id,merchant_id,campaign_id,run_date,target_leads&status=eq.requested&order=created_at.asc&limit=1",
   });
   const sr = rows?.[0];
@@ -61,6 +57,49 @@ async function resolveRequest() {
     search_request_id: sr.id,
     target_leads: sr.target_leads,
   };
+}
+
+// 根因B 修复：把卡在 processing 且 updated_at 早于 (now - grace) 的请求退回 requested。
+// 单并发下"有 worker 在跑 ⟹ 没有别的 worker 在跑"，看到的 processing 必是已死 run 留下的孤儿；
+// grace 仅作 DB 写传播保险。依赖 laboe_search_requests.updated_at 触发器自动 bump（已核实存在）。
+async function reclaimStaleProcessing(db, graceMs, nowMs) {
+  const cutoffISO = new Date(nowMs - graceMs).toISOString();
+  const rows = await db("PATCH", "laboe_search_requests", {
+    query: `?status=eq.processing&updated_at=lt.${cutoffISO}`,
+    body: { status: "requested", notes: "auto-reclaimed: stale processing (owning run died)" },
+    prefer: "return=representation",
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function resolveRequest() {
+  if (explicitMerchant && explicitDate) {
+    return {
+      merchant_id: explicitMerchant,
+      campaign_id: explicitCampaign || "design",
+      run_date: explicitDate,
+      search_request_id: explicitSearchRequestId || null,
+      target_leads: null,
+    };
+  }
+  return pickOldestRequested(supabase);
+}
+
+// 根因C 修复：一个 run 尽量清空积压——处理完当前请求后继续捡 requested，直到清空或触及预算上限
+// (maxDrain / budgetMs 防 GH job 60 分钟 timeout)。单并发下这保证"最后存活的那个 dispatch run"
+// 能把连发时被 concurrency 挤掉 pending 的兄弟请求全部补跑完，不再看不稳的 cron 脸色。
+async function drainQueue({ firstRequest, pickNext, process: processOne, now, maxDrain = 6, budgetMs = 45 * 60 * 1000 }) {
+  const start = now();
+  let request = firstRequest;
+  let processed = 0;
+  while (request) {
+    await processOne(request);
+    processed += 1;
+    if (processed >= maxDrain) break;
+    if (now() - start > budgetMs) break;
+    request = await pickNext();
+  }
+  return processed;
 }
 
 async function getMerchantTarget(merchantId, fallback) {
@@ -239,13 +278,7 @@ function parseLastJsonObject(stdout) {
   return JSON.parse(jsonText);
 }
 
-async function main() {
-  const request = await resolveRequest();
-  if (!request) {
-    console.log("No collection request found.");
-    return;
-  }
-
+async function processRequest(request) {
   const merchantId = request.merchant_id;
   const campaignId = request.campaign_id || "design";
   const runDate = request.run_date;
@@ -296,4 +329,36 @@ async function main() {
   }
 }
 
-await main();
+async function main() {
+  // B: 先回收被 cancel/崩溃卡死的 processing 孤儿。
+  const reclaimed = await reclaimStaleProcessing(supabase, STALE_GRACE_MS, Date.now());
+  if (reclaimed > 0) console.log(`Reclaimed ${reclaimed} stale processing request(s) back to requested.`);
+
+  // C: 首个请求(dispatch 显式 或 cron 最旧) → drain 清空积压。单个请求失败不中断整轮 drain。
+  const first = await resolveRequest();
+  let failures = 0;
+  const processed = await drainQueue({
+    firstRequest: first,
+    pickNext: () => pickOldestRequested(supabase),
+    process: async (request) => {
+      try {
+        await processRequest(request);
+      } catch (error) {
+        failures += 1;
+        console.error(`Request ${request.search_request_id} failed, continuing drain: ${error.message}`);
+      }
+    },
+    now: Date.now,
+  });
+
+  if (processed === 0) console.log("No collection request found.");
+  else console.log(`Drain complete: processed ${processed} request(s), ${failures} failed.`);
+  if (failures > 0) process.exitCode = 1; // 保留 CI 红灯，但不中断已完成的其他请求
+}
+
+// 只有作为脚本直接运行才执行 main()；被测试 import 时不自动跑。
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  await main();
+}
+
+export { reclaimStaleProcessing, pickOldestRequested, drainQueue };
