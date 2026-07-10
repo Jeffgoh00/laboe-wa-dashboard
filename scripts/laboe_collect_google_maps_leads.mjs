@@ -139,7 +139,7 @@ const designTargetQuotas = new Map([
 // 三段选取算法（含 Pass 3 兜底）都只会从这 4 类里取，非目标行业进不来，故无需 off-target cap。
 const designIndustryCaps = new Map();
 
-// —— Florist campaign (2026-07-02 → 07-03 扩为 3 类)：全马抓 花店 / 蛋糕 / 气球派对 三类，三平均，其余管线与 design 一致 ——
+// —— Florist campaign (2026-07-10 聚焦花店 only)：全马只抓花店 7 词，其余管线与 design 一致 ——
 const floristCities = [
   // 巴生谷核心
   "Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Klang", "Subang Jaya",
@@ -323,15 +323,9 @@ function waLink(phone, message) {
 
 function industryFrom(categoryText, queryText) {
   const text = `${categoryText} ${queryText}`.toLowerCase();
-  // florist campaign 分 3 桶(花店/蛋糕/气球)。**优先按 lane(queryText)判定**——每条 lane 只属一个垂直,
-  // 避免「蛋糕店 category 里带 Florist」被误标花店(下同气球)。lane 判不出才回退到 category 关键词。
+  // florist campaign 现只采花店(2026-07-10)——所有 lane 都是花店词，统一归花店桶。
+  // (旧的蛋糕/气球分桶逻辑已随词组一起移除；库存旧 leads 的 industry 不受影响，forward-only。)
   if (campaignId === "florist") {
-    const q = String(queryText || "").toLowerCase();
-    if (/cake|bakery|dessert|\bkek\b/.test(q)) return "cake / bakery";
-    if (/balloon|belon|party|helium/.test(q)) return "balloon / party";
-    if (/florist|flower|bunga/.test(q)) return "florist / flowers";
-    if (/cake|bakery|baker|dessert|pastry|patisserie|\bkek\b|bread/.test(text)) return "cake / bakery";
-    if (/balloon|belon|party|helium|decoration/.test(text)) return "balloon / party";
     return "florist / flowers";
   }
   if (/wedding|event|party|balloon|hamper|gift hamper/.test(text)) return "event / wedding / party / gifting";
