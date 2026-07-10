@@ -161,17 +161,13 @@ const floristCities = [
 ];
 
 const floristQueries = [
-  // 花店
+  // 花店 only（2026-07-10 campaign 聚焦花店：蛋糕/气球两组已移除；库存旧 leads 不动，纯 forward）
   "florist", "flower shop", "flower delivery", "florist gift shop", "wedding florist", "online florist", "kedai bunga",
-  // 蛋糕店 / 烘焙（"dessert shop" 已删——会捞出甜品餐厅/咖啡馆等非零售门店，2026-07-08）
-  "cake shop", "bakery", "birthday cake shop", "custom cake shop", "cake delivery", "kedai kek",
-  // 气球 / 派对布置
-  "balloon shop", "balloon decoration", "party supplies shop", "party decoration", "helium balloon shop", "balloon delivery", "kedai belon",
 ];
 
 const floristSourceLanes = floristCities.flatMap((city) => floristQueries.map((query) => [query, city]));
 
-// 花店 / 蛋糕 / 气球三类 celebration 零售门店都收，只排明显不是零售门店的
+// 花店零售门店，只排明显不是零售门店的（nursery/苗圃/批发/制造/假花厂等）
 const floristExcludePatterns = [
   /\bnursery\b/i,
   /\blandscap/i,
@@ -184,11 +180,9 @@ const floristExcludePatterns = [
   /\bartificial flower/i,     // 假花厂/批发，非消费花店
 ];
 
-// 三类平均(≈100 条:34 / 33 / 33)
+// 只采花店(100)
 const floristTargetQuotas = new Map([
-  ["florist / flowers", 34],
-  ["cake / bakery", 33],
-  ["balloon / party", 33],
+  ["florist / flowers", 100],
 ]);
 
 const floristIndustryCaps = new Map();
