@@ -643,6 +643,9 @@ I can also just send a few relevant sample works for your reference, and you can
         batches = seed.batch ? [seed.batch] : [];
         leads = Array.isArray(seed.leads) ? seed.leads : [];
       } catch (e) {}
+      // 预览模式用种子日,和 seed 里的 50 条 demo lead(run_date=2026-06-08)自洽;
+      // 避免真实登录改成 today 后残留 localStorage 让预览日期与 seed 数据错位。
+      startDate = currentDate = seedData.collection.run_date;
       myMerchantId = "PREVIEW"; myTier = "none"; myCap = null;
       campaigns = [
         { campaign_id: "design", name: "Laboe Design Services", brand_name: "Laboe Studio", sender_name: "Jeff" },
@@ -677,6 +680,12 @@ I can also just send a few relevant sample works for your reference, and you can
       $("user-pill").textContent = session.user.email || session.user.id;
       $("campaign-select").value = activeCampaignId;
       applyCampaignUi();
+      // 真实登录每次进入都落"今天":避免落到种子日(seedData 的 2026-06-08)或旧 localStorage
+      // 日期,导致按旧日期过滤 → 列表显示空(No leads match)。todayStr() 用 UTC,与采集 worker
+      // 写入的 run_date(同样由 todayStr() 派生)同源,过滤一致。
+      currentDate = todayStr();
+      startDate = todayStr();
+      storeDateRange();
       normalizeDateRange();
       $("date-start").value = startDate;
       $("date-end").value = currentDate;
