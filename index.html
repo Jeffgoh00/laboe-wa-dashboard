@@ -454,17 +454,17 @@ I can also just send a few relevant sample works for your reference, and you can
               <h3>📋 How your lead list is built</h3>
               <p id="lead-info-summary">Each batch (~100 leads) across all Malaysia, focused on visual-driven retail SMEs most likely to need branding, graphic, web design, marketing &amp; more.</p>
               <ul id="design-lead-mix" class="lead-mix">
-                <li><span>Jewelry</span><b>~25%</b></li>
-                <li><span>Maternity / baby / kids</span><b>~25%</b></li>
-                <li><span>Beauty / skincare / cosmetics</span><b>~25%</b></li>
-                <li><span>Events / wedding / gifting</span><b>~25%</b></li>
+                <li><span>Jewelry</span><b>~20%</b></li>
+                <li><span>Florists / flower shops</span><b>~20%</b></li>
+                <li><span>Gift / hamper shops</span><b>~20%</b></li>
+                <li><span>Maternity / baby / kids</span><b>~20%</b></li>
+                <li><span>Beauty / skincare / cosmetics</span><b>~20%</b></li>
               </ul>
               <ul id="florist-lead-mix" class="lead-mix hidden">
-                <li><span>Florists / flower shops</span><b>~34%</b></li>
-                <li><span>Cake shops / bakeries</span><b>~33%</b></li>
-                <li><span>Balloon / party shops</span><b>~33%</b></li>
+                <li><span>Florists / flower shops</span><b>~50%</b></li>
+                <li><span>Gift / hamper shops</span><b>~50%</b></li>
               </ul>
-              <p id="lead-info-foot" class="lead-info-foot">Only these 4 categories. Every lead is a WhatsApp-ready mobile number, <b>deduped</b> — you won't get a business that was recently collected by anyone. We skip clinics, salons, workshops, auto &amp; industrial.</p>
+              <p id="lead-info-foot" class="lead-info-foot">Only these categories. Every lead is a WhatsApp-ready mobile number, <b>deduped</b> — you won't get a business that was recently collected by anyone. We skip clinics, salons, workshops, auto &amp; industrial.</p>
             </div>
           </section>
         </aside>
@@ -589,7 +589,7 @@ I can also just send a few relevant sample works for your reference, and you can
       },
       florist: {
         title: "Laboe Celebration Campaign",
-        kicker: "Florist, cake & balloon shops across Malaysia",
+        kicker: "Florist & gift shops across Malaysia",
         sender: "Jeff",
         company: "Laboe Studio",
       },
@@ -708,8 +708,8 @@ I can also just send a few relevant sample works for your reference, and you can
         ["Popped Balloon & Party", "balloon / party", "60123456785", "pending"],
         ["Festive Balloons Studio", "balloon / party", "60123456786", "replied"],
       ];
-      const PV_SHOP = { "florist / flowers": "flower shop", "cake / bakery": "cake shop", "balloon / party": "party shop" };
-      const PV_PRODUCT = { "florist / flowers": "flowers", "cake / bakery": "cakes", "balloon / party": "balloons" };
+      const PV_SHOP = { "florist / flowers": "flower shop", "gift / hamper": "gift shop", "cake / bakery": "cake shop", "balloon / party": "party shop" };
+      const PV_PRODUCT = { "florist / flowers": "flowers", "gift / hamper": "gifts and hampers", "cake / bakery": "cakes", "balloon / party": "balloons" };
       leads = samples.map((row, index) => {
         const shop = PV_SHOP[row[1]] || "shop";
         const product = PV_PRODUCT[row[1]] || "products";
@@ -758,11 +758,11 @@ I can also just send a few relevant sample works for your reference, and you can
       $("design-lead-mix").classList.toggle("hidden", florist);
       $("florist-lead-mix").classList.toggle("hidden", !florist);
       setText("lead-info-summary", florist
-        ? "Each batch (~100 leads) collects florists, cake shops and balloon/party shops across all Malaysia — celebration retailers that take orders on WhatsApp."
+        ? "Each batch (~100 leads) collects florists and gift/hamper shops across all Malaysia — celebration retailers that take orders on WhatsApp."
         : "Each batch (~100 leads) across all Malaysia, focused on visual-driven retail SMEs most likely to need branding, graphic, web design, marketing & more.");
       $("lead-info-foot").innerHTML = florist
-        ? 'An even mix of florist, cake and balloon shops. Every lead has a WhatsApp-ready mobile number and is <b>deduped within this campaign for 90 days</b>. Design contacts are kept in a separate pool.'
-        : 'Only these 4 categories. Every lead is WhatsApp-ready and <b>deduped within the Design campaign for 90 days</b>. We skip clinics, salons, workshops, auto & industrial.';
+        ? 'An even mix of florist and gift/hamper shops. Every lead has a WhatsApp-ready mobile number and is <b>deduped within this campaign for 90 days</b>. Design contacts are kept in a separate pool.'
+        : 'Only these 5 categories. Every lead is WhatsApp-ready and <b>deduped within the Design campaign for 90 days</b>. We skip clinics, salons, workshops, auto & industrial.';
       $("status-filter").innerHTML = '<option value="all">All statuses</option><option value="pending">Pending</option><option value="sent">Sent</option><option value="replied">Replied</option><option value="bad">Bad Number</option><option value="skip">Skip</option><option value="bad_skip">Bad / Skip</option>';
       setText("metric-label-four", "Bad / Skip");
       setText("metric-label-five", "Completed Lists");
@@ -1141,6 +1141,7 @@ I can also just send a few relevant sample works for your reference, and you can
     const HANNA_SAMPLE_URL = "https://hannaflower.vercel.app";
     const CELEBRATION_WELCOME_VOCAB = {
       "florist / flowers": { zhSelf: "花店", zhOthers: "气球 / 蛋糕", zhProduct: "花", enSelf: "flower shops", enSelfOne: "flower shop", enOthers: "balloon and cake", enProduct: "flowers" },
+      "gift / hamper":     { zhSelf: "礼品店", zhOthers: "花 / 蛋糕", zhProduct: "礼品和礼篮", enSelf: "gift shops", enSelfOne: "gift shop", enOthers: "flower and cake", enProduct: "gifts and hampers" },
       "cake / bakery":     { zhSelf: "蛋糕店", zhOthers: "气球 / 花", zhProduct: "蛋糕", enSelf: "cake shops", enSelfOne: "cake shop", enOthers: "balloon and flower", enProduct: "cakes" },
       "balloon / party":   { zhSelf: "气球店", zhOthers: "花 / 蛋糕", zhProduct: "气球", enSelf: "balloon shops", enSelfOne: "balloon shop", enOthers: "flower and cake", enProduct: "balloons" },
     };

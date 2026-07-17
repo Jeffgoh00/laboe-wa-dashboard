@@ -17,6 +17,13 @@ const rebuildFromJson = process.argv.includes("--from-json");
 const outputBaseName = `${campaignId}-${date}-google-maps-fresh-leads`;
 
 const designExcludePatterns = [
+  // florist/gift lanes 加回后(2026-07-17)防苗圃/园艺/殡仪混入（与 floristExcludePatterns 同源；
+  // 只用 "plant nursery" 不用裸 "nursery"，避免误伤 baby 桶的母婴店名/类目）
+  /\bplant nursery\b/i,
+  /\blandscap/i,
+  /\bgarden cent(re|er)\b/i,
+  /\bfuneral (home|parlour|parlor|services)\b/i,
+  /\bartificial flower/i,
   /\bhardware\b/i,
   /\bindian restaurant\b/i,
   /\bauto\b/i,
@@ -107,39 +114,43 @@ const designSourceLanes = [
   ["jewellery boutique", "Kuantan"],
   ["jewellery boutique", "Bukit Mertajam"],
   ["jewellery boutique", "Miri"],
-  ["wedding planner", "Bangsar South"],
-  ["event styling", "Mont Kiara"],
-  ["party decoration", "Bandar Sunway"],
-  ["balloon decoration", "Puchong Jaya"],
-  ["gift hamper shop", "Bangsar"],
+  ["florist", "Bangsar South"],
+  ["flower shop", "Mont Kiara"],
+  ["florist", "Bandar Sunway"],
+  ["flower delivery", "Puchong Jaya"],
+  ["gift shop", "Bangsar"],
   ["gift hamper shop", "Sri Petaling"],
   ["hamper gift delivery", "Kajang"],
   ["gift hamper shop", "Seremban"],
-  ["party decoration", "Kuantan"],
-  // —— florist lane 已移出 design（2026-07-03）：花店归 florist campaign 独占，避免同店被两条线各发一次 ——
-  // —— fashion / home / 蛋糕 / 宠物 / 健身 / 手机配件 lanes 已移除（2026-07-06）：design 收窄为 4 类 ——
+  ["gift shop", "Kuantan"],
+  // —— 2026-07-17 design 重定焦：jewelry / florist / gift / baby / beauty·skincare·cosmetics 5 桶 ——
+  //    wedding / event / party / balloon lanes 移除；florist + gift lanes 加回（弟弟指定）。
+  //    ⚠️ florist / gift 与 celebration campaign 重叠，且 90 天去重是按 campaign 隔离的 → 同店可能被两条线各发一次。
+  // —— fashion / home / 蛋糕 / 宠物 / 健身 / 手机配件 lanes 已移除（2026-07-06） ——
   // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "florist", "flower shop", "gift shop", "gift hamper shop"].map((q) => [q, city])),
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 新加坡 + 加厚 ——
   ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "wedding planner", "party decoration", "gift hamper shop"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "baby product store", "kids boutique", "jewellery boutique", "florist", "flower shop", "gift shop", "gift hamper shop"].map((q) => [q, city])),
 ];
 
-// Order = priority (drives candidateSort rank + fill order). 2026-07-06：收窄为 4 类，各均分 25（弟弟指定）。
+// Order = priority (drives candidateSort rank + fill order). 2026-07-17：重定焦 5 桶各 20（弟弟指定：
+// Jewelry / Florist / Gift / Baby / Beauty·Skincare·Cosmetics，顺序即优先级；skincare、cosmetics 与 beauty 同桶）。
 const designTargetQuotas = new Map([
-  ["jewelry", 25],
-  ["maternity / baby / kids product", 25],
-  ["beauty / skincare / cosmetics", 25],
-  ["event / wedding / party / gifting", 25],
+  ["jewelry", 20],
+  ["florist / flowers", 20],
+  ["gift / hamper", 20],
+  ["maternity / baby / kids product", 20],
+  ["beauty / skincare / cosmetics", 20],
 ]);
 
-// 严格只要上面 4 类：designSourceLanes 已剪枝成只含这 4 类的搜索词，industryFrom 靠 queryText 判定
-// 且这 4 类的判定规则都排在 fashion/home/restaurant 等之前 → 候选池 100% 落在这 4 类，
-// 三段选取算法（含 Pass 3 兜底）都只会从这 4 类里取，非目标行业进不来，故无需 off-target cap。
+// 严格只要上面 5 类：designSourceLanes 已剪枝成只含这 5 类的搜索词，industryFrom 靠 queryText 判定
+// 且这 5 类的判定规则都排在 fashion/home/restaurant 等之前 → 候选池 100% 落在这 5 类，
+// 三段选取算法（含 Pass 3 兜底）都只会从这 5 类里取，非目标行业进不来，故无需 off-target cap。
 const designIndustryCaps = new Map();
 
-// —— Florist campaign (2026-07-10 聚焦花店 only)：全马只抓花店 7 词，其余管线与 design 一致 ——
+// —— Florist(=Celebration) campaign (2026-07-17 聚焦 florist + gift)：花店 7 词 + 礼品 3 词，其余管线与 design 一致 ——
 const floristCities = [
   // 巴生谷核心
   "Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Klang", "Subang Jaya",
@@ -161,8 +172,9 @@ const floristCities = [
 ];
 
 const floristQueries = [
-  // 花店 only（2026-07-10 campaign 聚焦花店：蛋糕/气球两组已移除；库存旧 leads 不动，纯 forward）
+  // 2026-07-17 聚焦 florist + gift 两类（蛋糕/气球 2026-07-10 已移除；库存旧 leads 不动，纯 forward）
   "florist", "flower shop", "flower delivery", "florist gift shop", "wedding florist", "online florist", "kedai bunga",
+  "gift shop", "gift hamper shop", "hamper gift delivery",
 ];
 
 const floristSourceLanes = floristCities.flatMap((city) => floristQueries.map((query) => [query, city]));
@@ -180,9 +192,10 @@ const floristExcludePatterns = [
   /\bartificial flower/i,     // 假花厂/批发，非消费花店
 ];
 
-// 只采花店(100)
+// florist 50 + gift 50（2026-07-17）
 const floristTargetQuotas = new Map([
-  ["florist / flowers", 100],
+  ["florist / flowers", 50],
+  ["gift / hamper", 50],
 ]);
 
 const floristIndustryCaps = new Map();
@@ -323,18 +336,21 @@ function waLink(phone, message) {
 
 function industryFrom(categoryText, queryText) {
   const text = `${categoryText} ${queryText}`.toLowerCase();
-  // florist campaign 现只采花店(2026-07-10)——所有 lane 都是花店词，统一归花店桶。
-  // (旧的蛋糕/气球分桶逻辑已随词组一起移除；库存旧 leads 的 industry 不受影响，forward-only。)
+  // florist(=Celebration) campaign 采 florist + gift 两桶(2026-07-17)。花店词优先判定：
+  // "florist gift shop" / 花店挂 Gift shop 类目 → 归花店桶，纯 gift/hamper 词才归礼品桶。
   if (campaignId === "florist") {
-    return "florist / flowers";
+    return /florist|flower|bouquet|bunga/.test(text) ? "florist / flowers" : "gift / hamper";
   }
-  if (/wedding|event|party|balloon|hamper|gift hamper/.test(text)) return "event / wedding / party / gifting";
-  if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery|pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
-  if (/pilates|yoga|dance|fitness|gym|studio/.test(text)) return "fitness / studio";
-  if (/florist|flower|bouquet/.test(text)) return "florist / gifting / lifestyle retail";
+  // 5 个目标桶先判（2026-07-17）：类目常混带 wedding/party 等词（如 "Wedding jewelry"、"Party supply"），
+  // 目标桶判定必须排在 event 等 legacy 兜底之前，否则候选掉进无 quota 的桶被降权。
+  if (/florist|flower|bouquet/.test(text)) return "florist / flowers";
+  if (/\bgift\b|hamper/.test(text)) return "gift / hamper";
+  if (/jewel|jewelry|jewellery/.test(text)) return "jewelry";
   if (/cosmetic|beauty|skincare|skin care|makeup/.test(text)) return "beauty / skincare / cosmetics";
   if (/maternity|pregnan|mother|baby|kids|children|child|toy|learning toy/.test(text)) return "maternity / baby / kids product";
-  if (/jewel|jewelry|jewellery/.test(text)) return "jewelry";
+  if (/wedding|event|party|balloon/.test(text)) return "event / wedding / party / gifting";
+  if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery|pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
+  if (/pilates|yoga|dance|fitness|gym|studio/.test(text)) return "fitness / studio";
   if (/fashion|boutique|clothing|women|apparel|shoe|bag/.test(text)) return "fashion / apparel / boutique";
   if (/home|decor|furniture|living/.test(text)) return "home / living / decor";
   if (/electronic|gadget|mobile|accessor/.test(text)) return "electronics / gadgets";
@@ -349,8 +365,11 @@ function buildAngle(industry, name) {
   if (industry === "beauty / skincare / cosmetics") {
     return `${name} already has a product-led retail presence, and stronger product visuals, launch creatives, and short-form social content could make the brand look more premium online.`;
   }
-  if (industry === "florist / gifting / lifestyle retail") {
-    return `${name} sells highly visual products, so seasonal campaign graphics, bouquet/gift photography, and clearer promo creatives could help convert more casual browsers.`;
+  if (industry === "florist / flowers") {
+    return `${name} sells highly visual products, so seasonal campaign graphics, bouquet photography, and clearer promo creatives could help convert more casual browsers.`;
+  }
+  if (industry === "gift / hamper") {
+    return `${name} sells gifting products where presentation drives the sale, so sharper hamper/gift photography, seasonal campaign visuals, and cleaner promo creatives could help convert more browsers.`;
   }
   if (industry === "fashion / apparel / boutique") {
     return `${name} can benefit from cleaner lookbook visuals, social media templates, and campaign assets that make new arrivals easier to browse and share.`;
@@ -389,7 +408,8 @@ function buildObservedNeed(industry) {
   if (industry === "home / living / decor") return "Catalog and lifestyle visuals need clearer styling to show product value.";
   if (industry === "fashion / apparel / boutique") return "New-arrival and lookbook content needs more consistent visual direction.";
   if (industry === "maternity / baby / kids product") return "Parent-facing product visuals need clear trust cues, friendly packaging, and polished social content.";
-  if (industry === "florist / gifting / lifestyle retail") return "Gift/seasonal content needs strong photos, layout, and promo graphics.";
+  if (industry === "florist / flowers") return "Seasonal/bouquet content needs strong photos, layout, and promo graphics.";
+  if (industry === "gift / hamper") return "Gift/seasonal content needs strong photos, layout, and promo graphics.";
   if (industry === "jewelry") return "Detail product shots and premium social layouts can be stronger.";
   if (industry === "electronics / gadgets") return "Product benefits need clearer visual explanation and promo layouts.";
   if (industry === "event / wedding / party / gifting") return "Packages, event galleries, and promo content need strong visual storytelling.";
@@ -503,6 +523,7 @@ const messageFrameworks = [
 // {{SENDER}}/{{COMPANY}} 门户渲染时替换,店名烘进,\n\n 分段,stableIndex 轮替(措辞打散降批量判垃圾)。
 const CELEBRATION_VOCAB = {
   "florist / flowers": { product: "flowers", niche: "florists", shop: "flower shop" },
+  "gift / hamper": { product: "gifts and hampers", niche: "gift shops", shop: "gift shop" },
   "cake / bakery": { product: "cakes", niche: "cake shops", shop: "cake shop" },
   "balloon / party": { product: "balloons", niche: "party shops", shop: "party shop" },
 };
