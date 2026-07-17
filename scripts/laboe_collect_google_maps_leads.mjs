@@ -343,11 +343,12 @@ function industryFrom(categoryText, queryText) {
   }
   // 5 个目标桶先判（2026-07-17）：类目常混带 wedding/party 等词（如 "Wedding jewelry"、"Party supply"），
   // 目标桶判定必须排在 event 等 legacy 兜底之前，否则候选掉进无 quota 的桶被降权。
+  // gift 放 5 桶最后：珠宝/玩具/美妆店常挂 "Gift shop" 副类目，gift 先判会把它们错吸进 gift 桶。
   if (/florist|flower|bouquet/.test(text)) return "florist / flowers";
-  if (/\bgift\b|hamper/.test(text)) return "gift / hamper";
   if (/jewel|jewelry|jewellery/.test(text)) return "jewelry";
   if (/cosmetic|beauty|skincare|skin care|makeup/.test(text)) return "beauty / skincare / cosmetics";
   if (/maternity|pregnan|mother|baby|kids|children|child|toy|learning toy/.test(text)) return "maternity / baby / kids product";
+  if (/\bgift\b|hamper/.test(text)) return "gift / hamper";
   if (/wedding|event|party|balloon/.test(text)) return "event / wedding / party / gifting";
   if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery|pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
   if (/pilates|yoga|dance|fitness|gym|studio/.test(text)) return "fitness / studio";
