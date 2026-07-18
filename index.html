@@ -591,7 +591,7 @@ I can also just send a few relevant sample works for your reference, and you can
         title: "Laboe Celebration Campaign",
         kicker: "Florist & gift shops across Malaysia",
         sender: "Jeff",
-        company: "Laboe Studio",
+        company: "Suntide",
       },
     };
     // Heal any stale/removed campaign (e.g. retired "joymom") so preview + first paint never desync.
@@ -1138,59 +1138,53 @@ I can also just send a few relevant sample works for your reference, and you can
     }
 
     // —— Celebration campaign(花店/气球/蛋糕)welcome message:中英双版,门户按行业自适应 ——
-    const HANNA_SAMPLE_URL = "https://hannaflower.vercel.app";
+    const SUNTIDE_SAMPLE_URL = "https://suntideflower.vercel.app/";
     const CELEBRATION_WELCOME_VOCAB = {
-      "florist / flowers": { zhSelf: "花店", zhOthers: "气球 / 蛋糕", zhProduct: "花", enSelf: "flower shops", enSelfOne: "flower shop", enOthers: "balloon and cake", enProduct: "flowers" },
-      "gift / hamper":     { zhSelf: "礼品店", zhOthers: "花 / 蛋糕", zhProduct: "礼品和礼篮", enSelf: "gift shops", enSelfOne: "gift shop", enOthers: "flower and cake", enProduct: "gifts and hampers" },
-      "cake / bakery":     { zhSelf: "蛋糕店", zhOthers: "气球 / 花", zhProduct: "蛋糕", enSelf: "cake shops", enSelfOne: "cake shop", enOthers: "balloon and flower", enProduct: "cakes" },
-      "balloon / party":   { zhSelf: "气球店", zhOthers: "花 / 蛋糕", zhProduct: "气球", enSelf: "balloon shops", enSelfOne: "balloon shop", enOthers: "flower and cake", enProduct: "balloons" },
+      "florist / flowers": { zhSelf: "花店", zhOrder: "订花",     enSelf: "flower shops",  enSelfOne: "flower shop" },
+      "gift / hamper":     { zhSelf: "礼品店", zhOrder: "订购礼品", enSelf: "gift shops",    enSelfOne: "gift shop" },
+      "cake / bakery":     { zhSelf: "蛋糕店", zhOrder: "订蛋糕",   enSelf: "cake shops",    enSelfOne: "cake shop" },
+      "balloon / party":   { zhSelf: "气球店", zhOrder: "订气球",   enSelf: "balloon shops", enSelfOne: "balloon shop" },
     };
-    // 三个 welcome msg 模版(A 直接价值 / B 同行案例 / E 行业痛点)。文字按行业自适应({zhSelf}=花店/蛋糕店/气球店 等)。
-    // CELEBRATION_ACTIVE=null → 三模版按 lead 稳定随机分配(A/B 测试,同一 lead 永远同一版,EN/ZH/两个 WA 按钮一致);
-    // 设 "A"/"B"/"E" 可强制单一版本。按钮/跳转/hannaflower 链接不在此处,勿动。
+    // 三个 welcome msg 模版(简洁风格:问候 / 一句价值 / demo 链接 / soft ask)。文字按行业自适应({zhSelf}=花店/礼品店 等)。
+    // CELEBRATION_ACTIVE=null → 三模版按 lead 稳定随机分配(A/B 测试,同一 lead 永远同一版,防 WhatsApp 判垃圾,EN/ZH/两个 WA 按钮一致);
+    // 设 "A"/"B"/"E" 可强制单一版本。按钮/跳转/demo 链接常量(SUNTIDE_SAMPLE_URL)不在此处,勿动。
     const CELEBRATION_ACTIVE = null;
     const CELEBRATION_TEMPLATES = {
       A: {
-        zh: (v, who) =>
-          `Hi 👋 我是 ${who}\n\n` +
-          `我帮本地${v.zhSelf}做了一个线上接单页面，想让你也用得上。\n\n` +
-          `你的客户可以直接看到你所有的${v.zhProduct}（有图有价），一键下单——不用再一直回复"多少钱、有没有这款"。而且随时都能下单，连你打烊后的单也接得到，等于多做一些原本会流失的生意。\n\n` +
-          `整个页面我们帮你弄好，你可以先免费试用，觉得有帮助再继续。\n\n` +
-          `先看看这个 sample 😄\n${HANNA_SAMPLE_URL}`,
-        en: (v, who) =>
-          `Hi 👋 I'm ${who}.\n\n` +
-          `I build simple online ordering pages for local ${v.enSelf}, and thought this could help yours.\n\n` +
-          `Your customers can see all your ${v.enProduct} (with photos and prices) and order in one tap — no more replying to "how much / do you have this" all day. They can order anytime too, even after you close, so you catch orders you'd usually miss.\n\n` +
-          `We set the whole page up for you, and you can try it free first — see if it helps before committing.\n\n` +
-          `Have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
+        zh: (v, who, co) =>
+          `Hi 👋 我是 ${co} 的 ${who}。\n\n` +
+          `我们帮助${v.zhSelf}获得更多本地客户询问，让顾客可以更方便地通过 WhatsApp ${v.zhOrder}。\n\n` +
+          `这是我们的 Demo：\n${SUNTIDE_SAMPLE_URL}\n\n` +
+          `有兴趣的话，我可以再简单介绍 😊`,
+        en: (v, who, co) =>
+          `Hi 👋 ${who} here from ${co}.\n\n` +
+          `We help ${v.enSelf} get more local enquiries and make ordering through WhatsApp easier.\n\n` +
+          `Here's a quick demo:\n${SUNTIDE_SAMPLE_URL}\n\n` +
+          `Let me know if you'd like to know more 😊`,
       },
       B: {
-        zh: (v, who) =>
-          `Hi 👋 我是 ${who}\n\n` +
-          `最近有几家本地${v.zhSelf}开始用我们的线上接单页面，效果不错，想分享给你。\n\n` +
-          `客户能直接浏览你全部的${v.zhProduct}、一键下单，还能在你打烊后自己下单——帮你多接不少单，也省下一直回复问价的时间。\n\n` +
-          `页面我们帮你设置好，还可以先免费试用。\n\n` +
-          `看看这个 sample 😄\n${HANNA_SAMPLE_URL}`,
-        en: (v, who) =>
-          `Hi 👋 I'm ${who}.\n\n` +
-          `A few local ${v.enSelf} have started using our online ordering page recently and it's working well, so I wanted to share it with you.\n\n` +
-          `Customers can browse all your ${v.enProduct} and order in one tap, even after you've closed — that brings in extra orders and saves you time replying to enquiries.\n\n` +
-          `We'll set the page up for you, and there's a free trial to start.\n\n` +
-          `Have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
+        zh: (v, who, co) =>
+          `Hi 👋 我是 ${co} 的 ${who}。\n\n` +
+          `最近有几家本地${v.zhSelf}开始用这个，更方便地通过 WhatsApp 接单，想说也许对你也有帮助。\n\n` +
+          `这是我们的 Demo：\n${SUNTIDE_SAMPLE_URL}\n\n` +
+          `有兴趣的话我可以再介绍一下 😊`,
+        en: (v, who, co) =>
+          `Hi 👋 ${who} here from ${co}.\n\n` +
+          `A few local ${v.enSelf} have started using this to take WhatsApp orders more easily — thought it might help yours too.\n\n` +
+          `Here's a quick demo:\n${SUNTIDE_SAMPLE_URL}\n\n` +
+          `Happy to share more if you're keen 😊`,
       },
       E: {
-        zh: (v, who) =>
-          `Hi 👋 我是 ${who}\n\n` +
-          `跟不少${v.zhSelf}老板聊过，发现每天光回复 WhatsApp 问价就花很多时间，所以我们做了这个线上接单页面。\n\n` +
-          `客户自己就能看到你所有的${v.zhProduct}、一键下单，随时（包括打烊后）都能订——你少回复很多，订单反而更多。\n\n` +
-          `页面我们帮你搞定，可以先免费试用看看。\n\n` +
-          `看看这个 sample 😄\n${HANNA_SAMPLE_URL}`,
-        en: (v, who) =>
-          `Hi 👋 I'm ${who}.\n\n` +
-          `We've been chatting with quite a few ${v.enSelfOne} owners lately and many spend a lot of time each day replying on WhatsApp, so we built a simple online ordering page.\n\n` +
-          `Customers can see all your ${v.enProduct} and order in one tap, anytime — including after you close — so you reply less and take more orders.\n\n` +
-          `We set it up for you, and you can try it free first.\n\n` +
-          `Have a look at this sample 😄\n${HANNA_SAMPLE_URL}`,
+        zh: (v, who, co) =>
+          `Hi 👋 我是 ${co} 的 ${who}。\n\n` +
+          `我们让${v.zhSelf}更轻松地在 WhatsApp 上接单，少花时间逐条回复询问。\n\n` +
+          `这是我们的 Demo：\n${SUNTIDE_SAMPLE_URL}\n\n` +
+          `觉得有用的话跟我说一声 😊`,
+        en: (v, who, co) =>
+          `Hi 👋 ${who} here from ${co}.\n\n` +
+          `We make it easier for ${v.enSelf} to take orders on WhatsApp, so you spend less time replying to enquiries.\n\n` +
+          `Here's a quick demo:\n${SUNTIDE_SAMPLE_URL}\n\n` +
+          `Let me know if it sounds useful 😊`,
       },
     };
     // 按 lead 身份稳定取一个模版(同一 lead 每次都同一版 → EN/ZH 两框 + 两个 WA 按钮一致)。
@@ -1205,8 +1199,9 @@ I can also just send a few relevant sample works for your reference, and you can
     function celebrationMsg(lead, lang) {
       const v = CELEBRATION_WELCOME_VOCAB[lead.industry] || CELEBRATION_WELCOME_VOCAB["florist / flowers"];
       const who = senderName || "Jeff";
+      const co = companyName || "Suntide";
       const tpl = celebrationPick(lead);
-      return lang === "zh" ? tpl.zh(v, who) : tpl.en(v, who);
+      return lang === "zh" ? tpl.zh(v, who, co) : tpl.en(v, who, co);
     }
     function celebrationWaLink(lead, lang) {
       const phone = String(lead.phone || "").replace(/\D/g, "");
