@@ -128,15 +128,19 @@ async function upsertRows(table, rows, conflictKey) {
   }
 }
 
-// Campaign 内全局去重：拉所有商户同 campaign 最近 90 天 leads。
-async function fetchExistingCampaignLeads(campaignId) {
+// 跨 campaign 全局去重（2026-07-21）：拉所有商户、所有 campaign 最近 90 天 leads。
+// 此前按 campaign 隔离（campaign_id=eq.过滤），两条线互相看不见 → 同一家店被 design 和
+// celebration 各采一次、各发一次（07-17~07-20 实际撞出 50 家同店）。现在两 campaign 的
+// 行业已完全切开（花=celebration，非花=design），全局去重不存在抢池问题，纯粹是保险丝：
+// 一家店 90 天内只属于一条线（含 gift 词捞到 hamper 花店这类模糊地带，先采先得）。
+async function fetchExistingCampaignLeads() {
   const pageSize = 1000;
   const rows = [];
   // 90-day dedup window: businesses collected >90 days ago are released back into the pool.
   const dedupCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   for (let offset = 0; ; offset += pageSize) {
     const page = await supabase("GET", "laboe_leads", {
-      query: `?select=merchant_id,campaign_id,run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&campaign_id=eq.${encodeURIComponent(campaignId)}&run_date=gte.${dedupCutoff}&order=id.asc&limit=${pageSize}&offset=${offset}`,
+      query: `?select=merchant_id,campaign_id,run_date,phone,business_name,google_maps_url,website_or_social_url,address,dedupe_key&run_date=gte.${dedupCutoff}&order=id.asc&limit=${pageSize}&offset=${offset}`,
     });
     rows.push(...(page || []));
     if (!page || page.length < pageSize) break;
@@ -297,9 +301,9 @@ async function processRequest(request) {
   });
 
   try {
-    const existingLeads = await fetchExistingCampaignLeads(campaignId);
+    const existingLeads = await fetchExistingCampaignLeads();
     await writeSupabaseHistoryFile(existingLeads);
-    // 同日同商户已有的 phone（用于 list 编号续号 + assigned 计数）；全局去重由 history 文件负责
+    // 同日同商户同 campaign 已有的 phone（用于 list 编号续号 + assigned 计数）；跨 campaign 全局去重由 history 文件负责
     const existingDayLeads = existingLeads.filter(
       (row) => String(row.merchant_id) === String(merchantId)
         && String(row.campaign_id || "design") === String(campaignId)
