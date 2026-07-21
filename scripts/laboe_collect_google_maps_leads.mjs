@@ -17,7 +17,12 @@ const rebuildFromJson = process.argv.includes("--from-json");
 const outputBaseName = `${campaignId}-${date}-google-maps-fresh-leads`;
 
 const designExcludePatterns = [
-  // 苗圃/园艺/殡仪排除保留（2026-07-21 florist/gift lanes 已移出 design，这几条留着防模糊类目漏入无害；
+  // 2026-07-21：花店独归 celebration，design 硬拦（gift 词常捞到卖 hamper 的花店，industryFrom 归无
+  // quota 桶只是垫底、Pass 2/3 缺口时仍会漏入 → 必须在候选阶段挡掉，否则重演双线撞车）。
+  // 用 florist / flower shop|delivery 精确词，不用裸 flower（防误伤 "Flower Diamond Jewellery" 类店名）。
+  /\bflorist\b/i,
+  /\bflower (shop|delivery|studio|boutique)\b/i,
+  // 苗圃/园艺/殡仪排除保留（防模糊类目漏入无害；
   // 只用 "plant nursery" 不用裸 "nursery"，避免误伤 baby 桶的母婴店名/类目）
   /\bplant nursery\b/i,
   /\blandscap/i,
@@ -114,42 +119,47 @@ const designSourceLanes = [
   ["jewellery boutique", "Kuantan"],
   ["jewellery boutique", "Bukit Mertajam"],
   ["jewellery boutique", "Miri"],
-  // —— 2026-07-21 领域切割：florist / gift lanes 全部移出 design，归 celebration campaign 独占 ——
-  //    背景：07-17 加回后实测 400 条里 91% 被 florist+gift 占领（老三桶 90 天去重耗干 + Pass 2/3 兜底硬填），
-  //    且与 celebration 库存撞出 50 家同店（去重按 campaign 隔离）。回到 07-03 的切法，根除双线撞车。
-  //    design 只做 jewelry / baby / beauty 三桶；缺口靠下方城市扩展数组的新关键词变体补池。
+  ["gift shop", "Bangsar"],
+  ["gift hamper shop", "Sri Petaling"],
+  ["gift hamper shop", "Seremban"],
+  ["gift shop", "Kuantan"],
+  // —— 2026-07-21 最终分工（Matthew 拍板）：celebration 只有花，除花以外全归 design ——
+  //    florist / flower 词条独归 celebration（07-17 加回后实测 91% 被占领 + 与 celebration 撞出 50 家同店）；
+  //    gift 归 design 四桶之一。design 侧花店靠 designExcludePatterns 硬拦（gift 词常捞到卖 hamper 的花店）。
+  //    "hamper gift delivery" 一词故意不用（最容易捞到花店），只用 gift shop / gift hamper shop。
   // —— wedding / event / party / balloon lanes 已移除（2026-07-17） ——
   // —— fashion / home / 蛋糕 / 宠物 / 健身 / 手机配件 lanes 已移除（2026-07-06） ——
   // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
-  //    2026-07-21：florist/flower shop/gift 系词移出（归 celebration）；三桶各加关键词变体扩池
-  //    （老三桶 90 天窗口内枯竭，一天只挤得出 10-25 条，靠新词×城市轮换补供给）。
+  //    2026-07-21：florist/flower 系词移出（归 celebration）；四桶各加关键词变体扩池
+  //    （老桶 90 天窗口内枯竭，一天只挤得出 10-25 条，靠新词×城市轮换补供给）。
   ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store", "gift shop", "gift hamper shop"].map((q) => [q, city])),
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 加厚 ——
   ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store", "gift shop", "gift hamper shop"].map((q) => [q, city])),
   // —— 城市扩展 #3 (2026-07-21)：大城市加厚 + 补漏 ——
   //    KL/PJ/JB/Penang/Melaka 等主力城市此前在 design 各只有 1 条专属 lane（枯竭最快的恰是供给最大的地方）；
   //    Kajang/Taiping/Sibu/Tawau/Kulim/Kuala Selangor 此前 design 完全没覆盖。与专属 lane 少量重复无害
   //    （sampleLanes 随机抽样 + 候选按 phone/url 去重）。
   ...["Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Subang Jaya", "Puchong", "Kajang", "Ampang", "Johor Bahru", "Penang", "Melaka", "Seremban", "Kuantan", "Sungai Petani", "Batu Pahat", "Muar", "Taiping", "Sibu", "Miri", "Tawau", "Kulim", "Kuala Selangor"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store"].map((q) => [q, city])),
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store", "gift shop", "gift hamper shop"].map((q) => [q, city])),
 ];
 
-// Order = priority (drives candidateSort rank + fill order). 2026-07-21：florist / gift 两桶移出
-// design（归 celebration 独占，根除双线撞车），回到三桶：Jewelry / Baby / Beauty·Skincare·Cosmetics。
-// ⚠️ 老三桶 90 天窗口内已近枯竭，短期内单日可能凑不满 100（每桶实际产出以真跑为准）；
-//    已加关键词变体扩池，且 6 月中采的 leads 9 月中滚出 90 天窗口后自动回池。
+// Order = priority (drives candidateSort rank + fill order). 2026-07-21 最终分工（Matthew 拍板）：
+// celebration 只有花，除花以外全归 design → design 四桶 Jewelry / Gift / Baby / Beauty·Skincare·Cosmetics。
+// florist 词条独归 celebration，design 靠 excludePatterns 把花店挡在候选池外（gift 词常捞到卖 hamper 的花店）。
+// ⚠️ 老桶 90 天窗口内已近枯竭，短期内单日可能凑不满 100（每桶实际产出以真跑为准）；
+//    已加关键词变体+城市扩池，且 6 月中采的 leads 9 月中滚出 90 天窗口后自动回池。
 const designTargetQuotas = new Map([
-  ["jewelry", 34],
-  ["maternity / baby / kids product", 33],
-  ["beauty / skincare / cosmetics", 33],
+  ["jewelry", 25],
+  ["gift / hamper", 25],
+  ["maternity / baby / kids product", 25],
+  ["beauty / skincare / cosmetics", 25],
 ]);
 
-// 严格只要上面 3 类：designSourceLanes 已剪枝成只含这 3 类的搜索词，industryFrom 靠 queryText 判定
-// 且这 3 类的判定规则都排在 fashion/home/restaurant 等之前 → 候选池 ~100% 落在这 3 类。
-// florist / gift 若经模糊类目漏入会被归到无 quota 桶（rank 999 垫底），仅 Pass 2/3 缺口时才可能进 —
-// 采集词已全移除，实际漏入量应≈0。
+// 严格只要上面 4 类：designSourceLanes 已剪枝成只含这 4 类的搜索词，industryFrom 靠 queryText 判定
+// 且这 4 类的判定规则都排在 fashion/home/restaurant 等之前 → 候选池 ~100% 落在这 4 类。
+// florist 经 gift 词模糊漏入的，一律被 designExcludePatterns 的 florist/flower 条目在候选阶段拦掉。
 const designIndustryCaps = new Map();
 
 // —— Florist(=Celebration) campaign (2026-07-17 聚焦 florist + gift)：花店 7 词 + 礼品 3 词，其余管线与 design 一致 ——
@@ -174,9 +184,9 @@ const floristCities = [
 ];
 
 const floristQueries = [
-  // 2026-07-17 聚焦 florist + gift 两类（蛋糕/气球 2026-07-10 已移除；库存旧 leads 不动，纯 forward）
+  // 2026-07-21 花店 only（Matthew 拍板：celebration 只有花，除花以外全归 design）。
+  // gift 3 词移回 design；蛋糕/气球 2026-07-10 已移除；库存旧 leads 不动，纯 forward。
   "florist", "flower shop", "flower delivery", "florist gift shop", "wedding florist", "online florist", "kedai bunga",
-  "gift shop", "gift hamper shop", "hamper gift delivery",
 ];
 
 const floristSourceLanes = floristCities.flatMap((city) => floristQueries.map((query) => [query, city]));
@@ -194,10 +204,9 @@ const floristExcludePatterns = [
   /\bartificial flower/i,     // 假花厂/批发，非消费花店
 ];
 
-// florist 50 + gift 50（2026-07-17）
+// 花店 only 100（2026-07-21，gift 移回 design）
 const floristTargetQuotas = new Map([
-  ["florist / flowers", 50],
-  ["gift / hamper", 50],
+  ["florist / flowers", 100],
 ]);
 
 const floristIndustryCaps = new Map();
@@ -338,10 +347,10 @@ function waLink(phone, message) {
 
 function industryFrom(categoryText, queryText) {
   const text = `${categoryText} ${queryText}`.toLowerCase();
-  // florist(=Celebration) campaign 采 florist + gift 两桶(2026-07-17)。花店词优先判定：
-  // "florist gift shop" / 花店挂 Gift shop 类目 → 归花店桶，纯 gift/hamper 词才归礼品桶。
+  // celebration campaign 花店 only（2026-07-21）：所有 lane 都是花店词，全归花店桶
+  //（花店常挂 Gift shop 副类目，按 query 来源归桶不看类目，防错归无 quota 桶被垫底）。
   if (campaignId === "florist") {
-    return /florist|flower|bouquet|bunga/.test(text) ? "florist / flowers" : "gift / hamper";
+    return "florist / flowers";
   }
   // 目标桶先判：类目常混带 wedding/party 等词（如 "Wedding jewelry"、"Party supply"），
   // 目标桶判定必须排在 event 等 legacy 兜底之前，否则候选掉进无 quota 的桶被降权。
