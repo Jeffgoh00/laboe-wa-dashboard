@@ -17,9 +17,10 @@ const rebuildFromJson = process.argv.includes("--from-json");
 const outputBaseName = `${campaignId}-${date}-google-maps-fresh-leads`;
 
 const designExcludePatterns = [
-  // 2026-07-21：花店独归 celebration，design 硬拦（gift 词常捞到卖 hamper 的花店，industryFrom 归无
-  // quota 桶只是垫底、Pass 2/3 缺口时仍会漏入 → 必须在候选阶段挡掉，否则重演双线撞车）。
+  // 2026-07-21：花店独归 celebration，design 硬拦（gift/hamper 词常捞到卖 hamper 的花店，industryFrom
+  // 归无 quota 桶只是垫底、Pass 2/3 缺口时仍会漏入 → 必须在候选阶段挡掉，否则重演双线撞车）。
   // 用 florist / flower shop|delivery 精确词，不用裸 flower（防误伤 "Flower Diamond Jewellery" 类店名）。
+  // ⚠️ 2026-07-21 改 11 桶后 Hamper 独立成桶，花店混入压力更大 —— 这几条是硬闸，别删。
   /\bflorist\b/i,
   /\bflower (shop|delivery|studio|boutique)\b/i,
   // 苗圃/园艺/殡仪排除保留（防模糊类目漏入无害；
@@ -29,17 +30,46 @@ const designExcludePatterns = [
   /\bgarden cent(re|er)\b/i,
   /\bfuneral (home|parlour|parlor|services)\b/i,
   /\bartificial flower/i,
+  // —— 堂食 F&B 硬拦（2026-07-21 Matthew 拍板：Cookies/Premium Food/Chocolate/Coffee 只要零售/品牌店）——
+  //    这是食品四桶的唯一闸门，收得太紧/太松都在这一块调。
+  //    ⚠️ "coffee shop" 是 Google Maps 给咖啡厅的标准类目，拦它会连带拦掉挂这个类目的烘焙工作室。
+  /\brestaurant\b/i,
+  /\bcaf(e|é)\b/i,
+  /\bcoffee shop\b/i,
+  /\bkopitiam\b/i,
+  /\bmamak\b/i,
+  /\bbistro\b/i,
+  /\bfood court\b/i,
+  /\bhawker\b/i,
+  /\bsteamboat\b/i,
+  /\bcatering\b/i,
+  /\bfood stall\b/i,
+  // —— 超市/便利店/大卖场（Premium Food 词的最大污染源）——
+  /\bsupermarket\b/i,
+  /\bhypermarket\b/i,
+  /\bmini ?market\b/i,
+  /\bconvenience store\b/i,
+  /\b7-?eleven\b/i,
+  /\bjaya grocer\b/i,
+  /\bvillage grocer\b/i,
+  /\bcold storage\b/i,
+  /\bmydin\b/i,
+  /\bpetronas\b/i,
+  /\baeon\b/i,
+  /\blotus'?s\b/i,
+  // 非零售 / B2B / 服务业
   /\bhardware\b/i,
-  /\bindian restaurant\b/i,
   /\bauto\b/i,
   /\bworkshop\b/i,
   /\btyre\b/i,
   /\bindustrial\b/i,
   /\bcontractor\b/i,
-  /\bfruit\b/i,
+  // 2026-07-21：裸 fruit 收窄 —— 果篮(fruit hamper)是 Hamper 桶的正当目标，只拦批发/摊档/果园
+  /\bfruit (stall|farm|wholesale|wholesaler)\b/i,
   /\bfresh produce\b/i,
   /\bdental\b/i,
   /\bclinic\b/i,
+  /\bveterinar/i,
   /\baesthetic\b/i,
   /\btrading\b/i,
   /\bsupplier\b/i,
@@ -52,6 +82,7 @@ const designExcludePatterns = [
   /\bsalon\b/i,
   /\bbarber\b/i,
   /\bnail\b/i,
+  // 大连锁（留着无害，即使该行业已不在 quota 桶内）
   /\bsephora\b/i,
   /\bwatsons\b/i,
   /\bguardian\b/i,
@@ -62,6 +93,7 @@ const designExcludePatterns = [
   /\bsk jewellery\b/i,
   /\bsiti khadijah\b/i,
   /\bmanjaku\b/i,
+  /\btoys ?r ?us\b/i,
   /\bsamsung\b/i,
   /\bapple\b/i,
   /\bioi\b/i,
@@ -86,80 +118,85 @@ const designMalayNamePatterns = [
   /\bubat\b/i,
 ];
 
-const designSourceLanes = [
-  ["beauty cosmetics shop", "Ampang"],
-  ["skincare store", "Mont Kiara"],
-  ["beauty product shop", "Bandar Sunway"],
-  ["cosmetics store", "Kota Damansara"],
-  ["k beauty store", "Bukit Jalil"],
-  ["makeup store", "Sri Petaling"],
-  ["beauty boutique", "Setia Alam"],
-  ["skincare boutique", "Ara Damansara"],
-  ["local cosmetics store", "Kepong"],
-  ["beauty supply store", "Batu Pahat"],
-  ["beauty supply store", "Muar"],
-  ["beauty cosmetics shop", "Seremban"],
-  ["cosmetics store", "Kuantan"],
-  ["skincare store", "Sungai Petani"],
-  ["beauty product shop", "Bukit Mertajam"],
-  ["kids boutique", "Kota Damansara"],
-  ["kids apparel store", "Setia Alam"],
-  ["baby product store", "Puchong"],
-  ["baby shop", "Subang Jaya"],
-  ["maternity store", "Petaling Jaya"],
-  ["mothercare baby product", "Kuala Lumpur"],
-  ["kids product store", "Johor Bahru"],
-  ["children toy store", "Penang"],
-  ["baby boutique", "Melaka"],
-  ["kids learning toy store", "Shah Alam"],
-  ["jewellery boutique", "Bangsar"],
-  ["jewellery boutique", "Mont Kiara"],
-  ["jewelry store", "Bandar Sunway"],
-  ["jewellery boutique", "Seremban"],
-  ["jewellery boutique", "Kuantan"],
-  ["jewellery boutique", "Bukit Mertajam"],
-  ["jewellery boutique", "Miri"],
-  ["gift shop", "Bangsar"],
-  ["gift hamper shop", "Sri Petaling"],
-  ["gift hamper shop", "Seremban"],
-  ["gift shop", "Kuantan"],
-  // —— 2026-07-21 最终分工（Matthew 拍板）：celebration 只有花，除花以外全归 design ——
-  //    florist / flower 词条独归 celebration（07-17 加回后实测 91% 被占领 + 与 celebration 撞出 50 家同店）；
-  //    gift 归 design 四桶之一。design 侧花店靠 designExcludePatterns 硬拦（gift 词常捞到卖 hamper 的花店）。
-  //    "hamper gift delivery" 一词故意不用（最容易捞到花店），只用 gift shop / gift hamper shop。
-  // —— wedding / event / party / balloon lanes 已移除（2026-07-17） ——
-  // —— fashion / home / 蛋糕 / 宠物 / 健身 / 手机配件 lanes 已移除（2026-07-06） ——
-  // —— 城市扩展 (2026-06-13)：核心行业词 × 新增城市，扩大供给池 ——
-  //    2026-07-21：florist/flower 系词移出（归 celebration）；四桶各加关键词变体扩池
-  //    （老桶 90 天窗口内枯竭，一天只挤得出 10-25 条，靠新词×城市轮换补供给）。
-  ...["Cheras", "Setapak", "Wangsa Maju", "Selayang", "Klang", "Rawang", "Semenyih", "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "George Town", "Bayan Lepas", "Butterworth", "Iskandar Puteri", "Kulai", "Skudai", "Ipoh"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store", "gift shop", "gift hamper shop"].map((q) => [q, city])),
-  // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 加厚 ——
-  ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store", "gift shop", "gift hamper shop"].map((q) => [q, city])),
-  // —— 城市扩展 #3 (2026-07-21)：大城市加厚 + 补漏 ——
-  //    KL/PJ/JB/Penang/Melaka 等主力城市此前在 design 各只有 1 条专属 lane（枯竭最快的恰是供给最大的地方）；
-  //    Kajang/Taiping/Sibu/Tawau/Kulim/Kuala Selangor 此前 design 完全没覆盖。与专属 lane 少量重复无害
-  //    （sampleLanes 随机抽样 + 候选按 phone/url 去重）。
-  ...["Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Subang Jaya", "Puchong", "Kajang", "Ampang", "Johor Bahru", "Penang", "Melaka", "Seremban", "Kuantan", "Sungai Petani", "Batu Pahat", "Muar", "Taiping", "Sibu", "Miri", "Tawau", "Kulim", "Kuala Selangor"]
-    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store", "gift shop", "gift hamper shop"].map((q) => [q, city])),
+// —— 2026-07-21 design 重定向（Matthew 拍板）：4 桶 → 11 桶 ——
+//    旧 jewelry / beauty·skincare·cosmetics 两桶整体退役（搜索词全移除、industryFrom 判定降为无 quota 垫底）；
+//    旧 gift·hamper 桶拆成 Gift / Hamper 两桶，旧 maternity·baby·kids 桶拆成 Baby / Kids 两桶。
+//    纯 forward-only：库存旧 leads 的 industry 字段不动。
+const designCities = [
+  // 巴生谷核心
+  "Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Subang Jaya", "Puchong", "Klang", "Cheras", "Kajang",
+  "Ampang", "Mont Kiara", "Bangsar", "Kepong", "Setapak", "Wangsa Maju", "Selayang", "Rawang",
+  "Kota Damansara", "Ara Damansara", "Setia Alam", "Sri Petaling", "Bukit Jalil", "Bandar Sunway",
+  "Cyberjaya", "Putrajaya", "Sungai Buloh", "Seri Kembangan", "USJ", "Semenyih", "Banting", "Bangi",
+  "Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road",
+  "Sungai Besi", "Bandar Kinrara", "Kota Kemuning", "Batu Caves", "Gombak", "Kuala Selangor",
+  // 北马
+  "Penang", "George Town", "Bayan Lepas", "Butterworth", "Bukit Mertajam", "Seberang Jaya",
+  "Tanjung Tokong", "Gelugor", "Air Itam", "Alor Setar", "Sungai Petani", "Kulim", "Kangar",
+  "Ipoh", "Taiping", "Sitiawan", "Teluk Intan", "Kampar",
+  // 南马
+  "Seremban", "Nilai", "Port Dickson", "Melaka", "Ayer Keroh",
+  "Johor Bahru", "Iskandar Puteri", "Skudai", "Kulai", "Senai", "Bukit Indah", "Permas Jaya",
+  "Pasir Gudang", "Batu Pahat", "Muar", "Kluang", "Segamat", "Pontian",
+  // 东海岸
+  "Kuantan", "Temerloh", "Bentong", "Kota Bharu", "Kuala Terengganu",
+  // 东马
+  "Kota Kinabalu", "Penampang", "Sandakan", "Tawau", "Kuching", "Miri", "Sibu", "Bintulu",
 ];
 
-// Order = priority (drives candidateSort rank + fill order). 2026-07-21 最终分工（Matthew 拍板）：
-// celebration 只有花，除花以外全归 design → design 四桶 Jewelry / Gift / Baby / Beauty·Skincare·Cosmetics。
-// florist 词条独归 celebration，design 靠 excludePatterns 把花店挡在候选池外（gift 词常捞到卖 hamper 的花店）。
-// ⚠️ 老桶 90 天窗口内已近枯竭，短期内单日可能凑不满 100（每桶实际产出以真跑为准）；
-//    已加关键词变体+城市扩池，且 6 月中采的 leads 9 月中滚出 90 天窗口后自动回池。
+// 每个 quota 桶的搜索词。⚠️ 加词前必须核两件事：
+//   ① 词本身不能命中 designExcludePatterns（否则 lane 自灭）；
+//   ② 词经 industryFrom 必须落回它自己的桶（verify_campaign_config.mjs 有断言）。
+const designQueries = [
+  // Gift（主桶）
+  "gift shop", "gift store", "souvenir shop",
+  // Hamper（主桶）—— 花店重灾区，全靠 excludePatterns 的 florist/flower 硬闸挡
+  "gift hamper shop", "hamper shop", "gift box shop",
+  // Baby（主桶）
+  "baby product store", "baby shop", "maternity store",
+  // Kids（主桶）
+  "kids boutique", "kids apparel store", "children toy store", "toy store",
+  // Cookies
+  "cookies shop", "cookie store", "biscuit shop",
+  // Premium Food
+  "gourmet food store", "premium food store", "specialty food store",
+  // Chocolate
+  "chocolate shop", "chocolate store",
+  // Pet
+  "pet shop", "pet supply store",
+  // Coffee（只要零售/烘焙品牌，不要堂食 → 不用裸 "coffee shop"）
+  "coffee bean store", "coffee roastery", "specialty coffee roastery",
+  // Lifestyle = 家居生活选品店（Matthew 定义）
+  "lifestyle store", "concept store", "home decor store", "homeware store",
+  // Home Fragrance
+  "home fragrance store", "scented candle shop", "aroma diffuser shop",
+];
+
+const designSourceLanes = designCities.flatMap((city) => designQueries.map((query) => [query, city]));
+
+// Order = priority (drives candidateSort rank + fill order)。2026-07-21 design 11 桶（Matthew 拍板）：
+// 4 主桶各 15（Gift / Hamper / Baby / Kids）+ 7 次桶（Cookies 6 / Premium Food 6 / Chocolate 6 /
+// Pet 6 / Coffee 6 / Lifestyle 5 / Home Fragrance 5）= 恰好 100。
+// ⚠️ 合计必须 = target(100)：Pass 1 按本 Map 顺序填，填够 target 就停 —— 合计超过 target 时排在后面的桶会被挤掉。
+// ⚠️ 桶窄的（Home Fragrance / Premium Food）大概率单日凑不满，缺口会被 Pass 3「无视 quota 硬填」用别的桶补上，
+//    所以实际配比一定和这里的数字有出入 —— 以真跑的 industry_mix 为准。
 const designTargetQuotas = new Map([
-  ["jewelry", 25],
-  ["gift / hamper", 25],
-  ["maternity / baby / kids product", 25],
-  ["beauty / skincare / cosmetics", 25],
+  ["gift", 15],
+  ["hamper / gift box", 15],
+  ["maternity / baby product", 15],
+  ["kids / toys", 15],
+  ["cookies / biscuits", 6],
+  ["premium food / gourmet", 6],
+  ["chocolate", 6],
+  ["pet supplies", 6],
+  ["coffee (retail / roastery)", 6],
+  ["lifestyle / home living", 5],
+  ["home fragrance / candles", 5],
 ]);
 
-// 严格只要上面 4 类：designSourceLanes 已剪枝成只含这 4 类的搜索词，industryFrom 靠 queryText 判定
-// 且这 4 类的判定规则都排在 fashion/home/restaurant 等之前 → 候选池 ~100% 落在这 4 类。
-// florist 经 gift 词模糊漏入的，一律被 designExcludePatterns 的 florist/flower 条目在候选阶段拦掉。
+// 严格只要上面 11 类：designQueries 只含这 11 类的搜索词，industryFrom 靠 queryText 判定
+// 且这 11 类的判定规则都排在 jewelry/beauty/fashion/restaurant 等 legacy 兜底之前 → 候选池 ~100% 落在这 11 类。
+// florist 经 gift/hamper 词模糊漏入的，一律被 designExcludePatterns 的 florist/flower 条目在候选阶段拦掉。
 const designIndustryCaps = new Map();
 
 // —— Florist(=Celebration) campaign (2026-07-17 聚焦 florist + gift)：花店 7 词 + 礼品 3 词，其余管线与 design 一致 ——
@@ -352,18 +389,33 @@ function industryFrom(categoryText, queryText) {
   if (campaignId === "florist") {
     return "florist / flowers";
   }
-  // 目标桶先判：类目常混带 wedding/party 等词（如 "Wedding jewelry"、"Party supply"），
-  // 目标桶判定必须排在 event 等 legacy 兜底之前，否则候选掉进无 quota 的桶被降权。
-  // 2026-07-21 起 design 只有 jewelry/baby/beauty 三桶有 quota；florist/gift 判定保留但已无 quota
-  // （rank 999 垫底，采集词也已移除）——florist 先判防花店混进 jewelry，gift 放最后防
-  // 珠宝/玩具/美妆店的 "Gift shop" 副类目被错吸进 gift 桶。
+  // —— design 11 桶判定（2026-07-21）。顺序即优先级，改动前先想清楚「谁该吃掉谁的副类目」——
+  //    ① florist 永远第一：花店常挂 Gift shop / Hamper 副类目，先归花店桶（无 quota，垫底）+ excludePatterns 硬拦，
+  //       双闸防它们混进 design 并占掉 celebration 的去重名额。
+  //    ② home fragrance 必须排在 lifestyle 之前（"home fragrance store" 含 "home"）。
+  //    ③ hamper 必须排在 gift 之前（礼篮店类目几乎都带 "Gift shop"）。
+  //    ④ baby 必须排在 kids 之前（母婴店类目常同时带 baby + kids）。
+  //    ⑤ 食品四桶（chocolate / cookies / coffee / premium food）排在 restaurant·cafe·bakery legacy 兜底之前，
+  //       否则会掉进无 quota 桶被降权；堂食店另由 excludePatterns 在候选阶段拦。
+  //    ⑥ jewelry / beauty 判定保留但已无 quota（2026-07-21 退役，rank 999 垫底，采集词已移除）。
   if (/florist|flower|bouquet/.test(text)) return "florist / flowers";
+  // 裸 aroma 不用（"Aroma Coffee/Chocolate" 类店名会被错吸），只用明确的香氛词组
+  if (/home fragrance|scented candle|candle shop|candle store|reed diffuser|aroma(therapy| diffuser)|essential oil/.test(text)) return "home fragrance / candles";
+  if (/hamper|gift box|gift basket|corporate gift/.test(text)) return "hamper / gift box";
+  if (/chocolat/.test(text)) return "chocolate";
+  if (/cookie|biscuit/.test(text)) return "cookies / biscuits";
+  if (/coffee (bean|roast)|roastery|roasters|specialty coffee/.test(text)) return "coffee (retail / roastery)";
+  if (/gourmet|premium food|specialty food|fine food|delicatessen/.test(text)) return "premium food / gourmet";
+  if (/maternity|pregnan|mother|baby|infant|newborn/.test(text)) return "maternity / baby product";
+  if (/kids|children|child|toy|learning toy/.test(text)) return "kids / toys";
+  if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery/.test(text)) return "pet supplies";
+  if (/lifestyle|concept store|home decor|homeware|houseware|home living|home & living/.test(text)) return "lifestyle / home living";
+  if (/\bgift\b|souvenir/.test(text)) return "gift";
+  // —— 以下为 legacy 兜底桶：无 quota，rank 999 垫底 ——
   if (/jewel|jewelry|jewellery/.test(text)) return "jewelry";
   if (/cosmetic|beauty|skincare|skin care|makeup/.test(text)) return "beauty / skincare / cosmetics";
-  if (/maternity|pregnan|mother|baby|kids|children|child|toy|learning toy/.test(text)) return "maternity / baby / kids product";
-  if (/\bgift\b|hamper/.test(text)) return "gift / hamper";
   if (/wedding|event|party|balloon/.test(text)) return "event / wedding / party / gifting";
-  if (/\bpet\b|pet shop|pet supply|pet supplies|pet food|pet bakery|pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
+  if (/pet grooming|\bgrooming\b/.test(text)) return "pet / lifestyle services";
   if (/pilates|yoga|dance|fitness|gym|studio/.test(text)) return "fitness / studio";
   if (/fashion|boutique|clothing|women|apparel|shoe|bag/.test(text)) return "fashion / apparel / boutique";
   if (/home|decor|furniture|living/.test(text)) return "home / living / decor";
@@ -382,8 +434,39 @@ function buildAngle(industry, name) {
   if (industry === "florist / flowers") {
     return `${name} sells highly visual products, so seasonal campaign graphics, bouquet photography, and clearer promo creatives could help convert more casual browsers.`;
   }
-  if (industry === "gift / hamper") {
-    return `${name} sells gifting products where presentation drives the sale, so sharper hamper/gift photography, seasonal campaign visuals, and cleaner promo creatives could help convert more browsers.`;
+  if (industry === "gift / hamper" || industry === "gift") {
+    return `${name} sells gifting products where presentation drives the sale, so sharper gift photography, seasonal campaign visuals, and cleaner promo creatives could help convert more browsers.`;
+  }
+  // —— design 11 桶（2026-07-21）——
+  if (industry === "hamper / gift box") {
+    return `${name} sells hampers and gift sets where the unboxing look decides the sale, so stronger set photography, seasonal campaign visuals, and a clear festive catalogue could help convert more enquiries.`;
+  }
+  if (industry === "maternity / baby product") {
+    return `${name} serves parents, so trust-led product visuals, clearer packaging, and warmer social content could make the brand feel more reliable and easier to buy from.`;
+  }
+  if (industry === "kids / toys") {
+    return `${name} sells to parents buying for kids, so brighter product visuals, clearer age/benefit cues, and playful promo creatives could make browsing and gifting decisions easier.`;
+  }
+  if (industry === "cookies / biscuits") {
+    return `${name} sells a product people buy with their eyes and often gift, so sharper product shots, cleaner packaging, and festive campaign visuals could lift both walk-in and online orders.`;
+  }
+  if (industry === "premium food / gourmet") {
+    return `${name} sells premium food products where packaging and presentation justify the price, so stronger product photography and a cleaner brand look could support the positioning.`;
+  }
+  if (industry === "chocolate") {
+    return `${name} sells a gifting-led product where packaging design carries the brand, so sharper product visuals, seasonal gift-set creatives, and cleaner promo layouts could help convert more browsers.`;
+  }
+  if (industry === "pet supplies") {
+    return `${name} speaks to pet owners, so warmer product visuals, clearer promo creatives, and friendlier social content could make the brand more memorable.`;
+  }
+  if (industry === "coffee (retail / roastery)") {
+    return `${name} sells beans and merch where label and brand look drive repeat orders, so stronger packaging visuals, product photography, and social content could help build a following.`;
+  }
+  if (industry === "lifestyle / home living") {
+    return `${name} has products where styling matters, so better catalogue visuals, room-setting content, and cleaner social creatives could lift perceived value.`;
+  }
+  if (industry === "home fragrance / candles") {
+    return `${name} sells a mood-led product that lives or dies on visuals, so stronger product and lifestyle photography, cleaner labels, and seasonal campaign creatives could help it stand out.`;
   }
   if (industry === "fashion / apparel / boutique") {
     return `${name} can benefit from cleaner lookbook visuals, social media templates, and campaign assets that make new arrivals easier to browse and share.`;
@@ -423,7 +506,18 @@ function buildObservedNeed(industry) {
   if (industry === "fashion / apparel / boutique") return "New-arrival and lookbook content needs more consistent visual direction.";
   if (industry === "maternity / baby / kids product") return "Parent-facing product visuals need clear trust cues, friendly packaging, and polished social content.";
   if (industry === "florist / flowers") return "Seasonal/bouquet content needs strong photos, layout, and promo graphics.";
-  if (industry === "gift / hamper") return "Gift/seasonal content needs strong photos, layout, and promo graphics.";
+  if (industry === "gift / hamper" || industry === "gift") return "Gift/seasonal content needs strong photos, layout, and promo graphics.";
+  // —— design 11 桶（2026-07-21）——
+  if (industry === "hamper / gift box") return "Hamper/gift-set visuals and the festive catalogue need a cleaner, more premium presentation.";
+  if (industry === "maternity / baby product") return "Parent-facing product visuals need clear trust cues, friendly packaging, and polished social content.";
+  if (industry === "kids / toys") return "Product visuals need clearer age/benefit cues and more consistent, playful promo content.";
+  if (industry === "cookies / biscuits") return "Product and packaging shots need to look more appetising and gift-ready across Maps/social.";
+  if (industry === "premium food / gourmet") return "Packaging and product photography need to match the premium price point.";
+  if (industry === "chocolate") return "Gift-set and packaging visuals need a sharper, more premium campaign look.";
+  if (industry === "pet supplies") return "Friendly product visuals and social content can make the brand more approachable.";
+  if (industry === "coffee (retail / roastery)") return "Label, packaging, and product content need a stronger, more consistent brand look.";
+  if (industry === "lifestyle / home living") return "Catalogue and lifestyle visuals need clearer styling to show product value.";
+  if (industry === "home fragrance / candles") return "Product and mood visuals need stronger styling and cleaner label/packaging design.";
   if (industry === "jewelry") return "Detail product shots and premium social layouts can be stronger.";
   if (industry === "electronics / gadgets") return "Product benefits need clearer visual explanation and promo layouts.";
   if (industry === "event / wedding / party / gifting") return "Packages, event galleries, and promo content need strong visual storytelling.";
