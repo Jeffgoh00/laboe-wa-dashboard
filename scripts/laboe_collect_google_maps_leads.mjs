@@ -128,6 +128,12 @@ const designSourceLanes = [
   // —— 城市扩展 #2 (2026-06-13)：填补空白州 + 加厚 ——
   ...["Bukit Bintang", "KLCC", "Sentul", "Sri Hartamas", "Desa ParkCity", "Brickfields", "Old Klang Road", "Sungai Besi", "Bandar Kinrara", "USJ", "Kota Kemuning", "Bangi", "Batu Caves", "Gombak", "Banting", "Tanjung Tokong", "Gelugor", "Air Itam", "Seberang Jaya", "Bukit Indah", "Permas Jaya", "Pasir Gudang", "Senai", "Kluang", "Segamat", "Pontian", "Sitiawan", "Teluk Intan", "Kampar", "Alor Setar", "Bentong", "Temerloh", "Nilai", "Port Dickson", "Ayer Keroh", "Kota Kinabalu", "Penampang", "Sandakan", "Kuching", "Bintulu", "Kota Bharu", "Kuala Terengganu", "Kangar"]
     .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store"].map((q) => [q, city])),
+  // —— 城市扩展 #3 (2026-07-21)：大城市加厚 + 补漏 ——
+  //    KL/PJ/JB/Penang/Melaka 等主力城市此前在 design 各只有 1 条专属 lane（枯竭最快的恰是供给最大的地方）；
+  //    Kajang/Taiping/Sibu/Tawau/Kulim/Kuala Selangor 此前 design 完全没覆盖。与专属 lane 少量重复无害
+  //    （sampleLanes 随机抽样 + 候选按 phone/url 去重）。
+  ...["Kuala Lumpur", "Petaling Jaya", "Shah Alam", "Subang Jaya", "Puchong", "Kajang", "Ampang", "Johor Bahru", "Penang", "Melaka", "Seremban", "Kuantan", "Sungai Petani", "Batu Pahat", "Muar", "Taiping", "Sibu", "Miri", "Tawau", "Kulim", "Kuala Selangor"]
+    .flatMap((city) => ["beauty cosmetics shop", "skincare store", "cosmetics store", "makeup store", "baby product store", "baby shop", "kids boutique", "children toy store", "maternity store", "jewellery boutique", "jewelry store"].map((q) => [q, city])),
 ];
 
 // Order = priority (drives candidateSort rank + fill order). 2026-07-21：florist / gift 两桶移出
